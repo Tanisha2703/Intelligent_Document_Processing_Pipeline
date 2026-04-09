@@ -1,0 +1,92 @@
+# ============================================================
+# pipeline_config.yaml — All configurable pipeline parameters
+# ============================================================
+
+# --- OCR Settings ---
+ocr:
+  languages: "hin+eng"          # Tesseract language codes
+  oem: 3                         # OCR Engine Mode: 3 = LSTM (best accuracy)
+  psm: 6                         # Page Segmentation Mode: 6 = uniform text block
+  confidence_threshold: 30       # Word confidence threshold (0–100); below = dropped
+  dpi: 300                       # DPI for PDF to image conversion
+
+# --- Image Preprocessing ---
+preprocessing:
+  enabled: true
+  grayscale: true                # Step 1: convert to grayscale
+  dpi_normalize: true            # Step 2: resize to 300 DPI equivalent
+  noise_removal: true            # Step 3: medianBlur kernel size
+  noise_kernel: 3                # IMPORTANT: keep ≤5 for Devanagari matras
+  deskew: true                   # Step 4: detect and correct skew
+  deskew_max_angle: 15.0         # Max skew angle to correct (degrees)
+  adaptive_threshold: true       # Step 5: adaptive Gaussian threshold
+  threshold_block_size: 15       # Must be odd number
+  threshold_c: 8                 # Constant subtracted from mean
+
+# --- NER Model ---
+ner:
+  use_finetuned: true            # Fine-tuned model available in models/ner/
+  finetuned_model_path: "models/ner"
+  fallback_model: "Davlan/xlm-roberta-base-ner-hrl"
+  confidence_threshold: 0.70     # Entities below this are discarded
+  max_chunk_length: 1000         # Max chars per chunk for long texts
+  max_token_length: 256          # Max subword tokens per inference call
+
+# --- Classifier Model ---
+classifier:
+  use_finetuned: true            # Fine-tuned model available in models/classifier/
+  finetuned_model_path: "models/classifier"
+  fallback_model: "facebook/bart-large-mnli"
+  max_token_length: 512
+  categories:
+    - invoice
+    - receipt
+    - id_card
+    - legal_document
+    - medical_report
+    - bank_statement
+    - govt_form
+    - letter
+
+# --- Pipeline ---
+pipeline:
+  timeout_seconds: 120           # Max processing time per document
+  max_pages: 20                  # Max pages per PDF
+  max_file_size_mb: 50           # Max upload size
+  parallel_ner_classifier: true  # Run NER and classifier in parallel threads
+
+# --- Training Hyperparameters ---
+training:
+  ner:
+    base_model: "xlm-roberta-base"
+    learning_rate: 2.0e-5
+    batch_size: 16
+    epochs: 10
+    max_length: 256
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true                   # Requires CUDA GPU
+    early_stopping_patience: 3
+    metric_for_best_model: "overall_f1"
+    save_total_limit: 3
+    output_dir: "models/ner"
+    logging_steps: 50
+    eval_steps: 200
+    save_steps: 200
+
+  classifier:
+    base_model: "xlm-roberta-base"
+    learning_rate: 3.0e-5
+    batch_size: 16
+    epochs: 8
+    max_length: 512
+    warmup_ratio: 0.1
+    weight_decay: 0.01
+    fp16: true                   # Requires CUDA GPU
+    early_stopping_patience: 3
+    metric_for_best_model: "f1_macro"
+    save_total_limit: 3
+    output_dir: "models/classifier"
+    logging_steps: 50
+    eval_steps: 100
+    save_steps: 100

@@ -1,0 +1,58 @@
+# ============================================================
+# Multilingual Document Intelligence Pipeline
+# requirements.txt — All Python dependencies
+# ============================================================
+
+# --- Core Python ---
+python-dotenv>=1.0.0
+
+# --- OCR ---
+pytesseract>=0.3.10
+pdf2image>=1.16.3
+Pillow>=10.0.0
+
+# --- Image Processing ---
+opencv-python-headless>=4.8.0
+
+# --- NLP / Transformers ---
+transformers>=4.36.0
+accelerate>=0.25.0
+datasets>=2.16.0
+evaluate>=0.4.0
+seqeval>=1.2.2
+sentencepiece>=0.1.99
+protobuf>=3.20.0
+
+# --- Language Detection ---
+langdetect>=1.0.9
+
+# --- Data Generation ---
+Faker>=20.0.0
+
+# --- Data Processing ---
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# --- Export ---
+openpyxl>=3.1.0
+xlsxwriter>=3.1.0
+
+# --- Config ---
+PyYAML>=6.0.0
+
+# --- Frontend ---
+streamlit>=1.29.0
+
+# --- Training ---
+torch>=2.0.0
+# If using CUDA 11.8: pip install torch --index-url https://download.pytorch.org/whl/cu118
+# If using CUDA 12.1: pip install torch --index-url https://download.pytorch.org/whl/cu121
+
+# --- Testing ---
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# --- Utilities ---
+tqdm>=4.66.0
+requests>=2.31.0
