@@ -2,8 +2,12 @@
 
 A field is correct when its normalised value equals the label's (dates and amounts via src/utils/normalize.py).
 SROIE's own labels contain typos (a printed "81750" labelled "B1750"), so text fields can also be scored
-"near exact": within 2 characters of edit distance after normalisation. Both are reported.
+"near exact": within 2 characters of edit distance after normalisation, or by "content": equal once punctuation and spaces
+are ignored (the labels' punctuation and spacing conventions are arbitrary, and fine-tuning learns them). All are reported;
+the headline is the strict one.
 """
+
+import re
 
 from rapidfuzz.distance import Levenshtein
 
@@ -24,3 +28,14 @@ def correct(field: str, truth: str, pred: str | None, near: bool = False) -> boo
     if a == b:
         return True
     return near and ETYPE[field] == "text" and Levenshtein.distance(a, b) <= 2
+
+
+def content_match(field: str, truth: str, pred: str | None) -> bool:
+    """Do `pred` and `truth` say the same thing? Text fields are compared on letters and digits only (punctuation,
+    spacing and case ignored); dates and amounts are compared by value exactly as in `correct`."""
+    if ETYPE[field] != "text":
+        return correct(field, truth, pred)
+    if not pred:
+        return False
+    squash = lambda s: re.sub(r"[^0-9a-z]", "", s.lower())  # noqa: E731
+    return squash(truth) == squash(pred)

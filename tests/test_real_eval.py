@@ -63,3 +63,14 @@ def test_cord_parse_salvages_a_truncated_menu():
 def test_cord_parse_of_garbage_is_empty_not_a_crash():
     out = parse_json("I cannot read this.", "cord_receipt")
     assert out == {"total_price": None, "subtotal_price": None, "tax_price": None, "menu": []}
+
+
+def test_content_match_ignores_punctuation_spacing_and_case_in_text_fields_only():
+    from src.eval.receipts import content_match
+
+    assert content_match("address", "NO.20. GROUND FLOOR, JALAN BS 10/6", "No 20, Ground Floor Jalan BS 10/6")
+    assert content_match("company", "MR. D. I. Y. (KUCHAI) SDN BHD", "MR. D.I.Y.(KUCHAI) SDN BHD")
+    assert not content_match("address", "81750 MASAI", "B1750 MASAI")  # a changed character is still wrong
+    assert not content_match("address", "ABC", None)
+    assert not content_match("total", "9.00", "9.01")  # amounts are compared by value
+    assert content_match("total", "RM 9.00", "9")

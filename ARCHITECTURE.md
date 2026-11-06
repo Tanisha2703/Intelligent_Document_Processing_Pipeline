@@ -34,7 +34,7 @@
 | `src/api/backends.py` | where the models run: the Modal class (looked up by app name) for extraction, DiT on CPU for document types; each returns None when not configured |
 | `src/api/images.py` | upload validation (suffix, size) and conversion to the RGB PNG the model was fine-tuned on |
 | `src/utils/guard.py` | API key, local-only default and the daily GPU-call cap |
-| `src/monitor/` | `ReviewStore` (queue plus resolved corrections as labelled data), `DriftMonitor` (PSI of expected errors per receipt against the dev reference) |
+| `src/monitor/` | `ReviewStore` (queue plus resolved corrections: values only, no images, so it is not yet usable as training data), `DriftMonitor` (PSI of expected errors per receipt against the dev reference) |
 | `src/eval/`, `src/utils/normalize.py` | scoring and the normalisation (dates, amounts) used by training data, scorers and the service |
 | `benchmarks/modal_finetune.py`, `modal_run.py` | LoRA fine-tuning and evaluation/serving on Modal, behind a cost guard (`modal_common.py`) |
 

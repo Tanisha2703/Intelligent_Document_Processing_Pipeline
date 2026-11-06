@@ -4,7 +4,7 @@
 
 Source: Hugging Face `chainyo/rvl-cdip`, a copy of RVL-CDIP (Harley et al., 2015; derived from the IIT-CDIP collection of
 scanned tobacco-industry documents), read from its auto-converted parquet files with HTTP range requests, one row group
-(2,600 documents) at a time, so only the groups holding the sampled documents are downloaded (about 2 GB per split).
+(2,600 documents) at a time, so only the groups holding the sampled documents are downloaded (the saved sets are about 0.5 GB).
 The converted `train` split is partial and covers only 2 classes, so the probe's training and dev documents come from the
 `val` split (disjoint from each other), and the evaluation documents from `test`.
 

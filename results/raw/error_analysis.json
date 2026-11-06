@@ -1,0 +1,106 @@
+{
+ "system_tag": "real_ft7b_sroie_test",
+ "receipts": 361,
+ "fields": {
+  "company": {
+   "right_strict": 333,
+   "wrong": 28,
+   "wrong_but_content_matches": 10,
+   "kinds": {
+    "near_miss_within_2_chars": 16,
+    "extra_text_in_prediction": 6,
+    "similar_85_plus": 4,
+    "different": 2
+   }
+  },
+  "address": {
+   "right_strict": 258,
+   "wrong": 103,
+   "wrong_but_content_matches": 67,
+   "kinds": {
+    "near_miss_within_2_chars": 76,
+    "similar_85_plus": 20,
+    "extra_text_in_prediction": 4,
+    "partly_similar_60_85": 2,
+    "prediction_truncated": 1
+   }
+  },
+  "date": {
+   "right_strict": 353,
+   "wrong": 8,
+   "wrong_but_content_matches": 0,
+   "kinds": {
+    "similar_85_plus": 8
+   }
+  },
+  "total": {
+   "right_strict": 357,
+   "wrong": 4,
+   "wrong_but_content_matches": 0,
+   "kinds": {
+    "different": 2,
+    "partly_similar_60_85": 2
+   }
+  }
+ },
+ "near_miss_addresses": {
+  "count": 76,
+  "edit_touches_a_digit": 25,
+  "letters_or_punctuation_only": 51,
+  "most_common_substitutions": [
+   [
+    ".->,",
+    9
+   ],
+   [
+    ",->.",
+    3
+   ],
+   [
+    ",-> ",
+    2
+   ],
+   [
+    "B->8",
+    1
+   ],
+   [
+    "5->6",
+    1
+   ],
+   [
+    "I->L",
+    1
+   ],
+   [
+    "S->T",
+    1
+   ],
+   [
+    "A->E",
+    1
+   ]
+  ]
+ },
+ "by_original_size": {
+  "at_most_1.4_MP_not_downscaled": {
+   "receipts": 164,
+   "field_accuracy": 0.9192073170731707,
+   "address_exact": 0.7560975609756098,
+   "address_within_2_chars": 0.9390243902439024
+  },
+  "1.4_to_5_MP": {
+   "receipts": 141,
+   "field_accuracy": 0.8794326241134752,
+   "address_exact": 0.6595744680851063,
+   "address_within_2_chars": 0.8865248226950354
+  },
+  "over_5_MP_heavily_downscaled": {
+   "receipts": 56,
+   "field_accuracy": 0.9017857142857143,
+   "address_exact": 0.7321428571428571,
+   "address_within_2_chars": 0.9821428571428571
+  }
+ },
+ "share_of_test_receipts_downscaled": 0.5457063711911357
+}

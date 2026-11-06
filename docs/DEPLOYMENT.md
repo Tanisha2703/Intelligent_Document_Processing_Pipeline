@@ -15,7 +15,7 @@ modal deploy benchmarks/modal_run.py                 # app "docintel-vlm"; the c
 
 **Redeploy after pulling changes.** The deployed app is a snapshot of `benchmarks/modal_run.py`: an old deployment does not know newer document types (the form route fails with `KeyError: 'xfund_form'`). On Windows, set `PYTHONUTF8=1` for `modal deploy`, or the CLI crashes printing its check mark.
 
-`configs/receipt_calibration.json` names the model and adapter the service calls (`ft7b` by default; `receipt_calibration_ft3b.json` is the cheaper alternative) and holds the calibration map and accept threshold fitted on dev receipts. A cold GPU container adds about a minute to the first request. Settings: `DOCINTEL_GPU` (default A10G), `DOCINTEL_MAX_PIXELS` (the image budget, 1.4 MP, which sets image tokens and therefore time), `DOCINTEL_BUDGET_USD`.
+`configs/receipt_calibration.json` names the model and adapter the service calls (`ft7b` by default; `receipt_calibration_ft3b.json` is the cheaper alternative) and holds the calibration map and accept threshold fitted on dev receipts. A cold GPU container made the first requests take 28 to 45 seconds in my runs, against about 3 to 4 seconds per page when warm (RESULTS.md section 1 and 2.1). Settings: `DOCINTEL_GPU` (default A10G), `DOCINTEL_MAX_PIXELS` (the image budget, 1.4 MP, which sets image tokens and therefore time), `DOCINTEL_BUDGET_USD`.
 
 **Cost guard.** Every Modal script estimates its worst-case cost before launching and refuses to start if that exceeds the budget left after the ledger (`results/raw/modal_spend.json`). Estimates use Modal list prices and measured seconds; check the price table in `benchmarks/modal_common.py` before relying on it.
 
@@ -92,8 +92,8 @@ python benchmarks/analyze_xfund.py --out results/raw/xfund_compare.json
 
 ```bash
 pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements-doctype.txt
-python benchmarks/fetch_rvlcdip.py                                                # 100 test + 100 train + 60 dev per class, about 2 GB per split read
-python benchmarks/embed_doctype.py sroie_ft sroie_dev sroie_test cord_train cord_validation cord_test xfund_train xfund_test     rvlcdip_train rvlcdip_dev rvlcdip_test                                        # about 30 minutes on a laptop CPU, resumable
+python benchmarks/fetch_rvlcdip.py                                                # 100 test + 100 train + 60 dev per class (about 0.5 GB saved)
+python benchmarks/embed_doctype.py sroie_ft sroie_dev sroie_test cord_train cord_validation cord_test xfund_train xfund_test     rvlcdip_train rvlcdip_dev rvlcdip_test                                        # 21 minutes for the three RVL-CDIP sets on a laptop CPU (440 + 299 + 500 s), a few more for the rest; resumable
 python benchmarks/analyze_doctype.py --receipts sroie --out results/raw/doctype_compare_sroie_only.json
 python benchmarks/analyze_doctype.py --receipts sroie+cord --write-config --out results/raw/doctype_compare.json   # also writes configs/doctype*.{json,npz}
 ```
@@ -112,8 +112,12 @@ The Modal app (`docintel-vlm`) has no public endpoint: it can only be called wit
 
 Also: bind the Streamlit demo to the local machine unless you mean to share it (`streamlit run app.py --server.address 127.0.0.1`; its default is every interface), keep your Modal token out of the repository (`.env` and `~/.modal.toml` are not tracked), and set a spend limit in the Modal dashboard as the backstop. Not built: per-user accounts, a shared counter across several service processes.
 
-## 7. Before putting anything real through it
+## 7. Model licences
 
-- The measurements are on public receipts and old scanned documents. Build a small labelled set of your own documents (the review queue produces one as a side effect), re-run the analysis on it and **refit the calibration and the document-type probe**: calibration fitted on a different document family auto-accepted 89% of real fields at 89% precision instead of 99%, and a receipt format the probe had not seen was recognised 70% of the time.
+Qwen2.5-VL-3B-Instruct's model card lists the Qwen Research licence ([discussion](https://huggingface.co/Qwen/Qwen2.5-VL-3B-Instruct/discussions/12)). For the 7B, a mirror lists Apache-2.0 while a [question on the official repository](https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct/discussions/31) about whether that is right had no answer when I checked. DiT-base is `microsoft/dit-base-finetuned-rvlcdip`. Read the licence in each official model card before any commercial use.
+
+## 8. Before putting anything real through it
+
+- The measurements are on public receipts and old scanned documents. Build a small labelled set of your own documents (the review queue records corrected values but not the images, so it does not produce one by itself), re-run the analysis on it and **refit the calibration and the document-type probe**: calibration fitted on a different document family auto-accepted 89% of real fields at 89% precision instead of 99%, and a receipt format the probe had not seen was recognised 70% of the time.
 - Add authentication and a persistent store behind the API; `ReviewStore` is an append-only file for one process.
 - Decide the accept threshold from what a wrong field costs you. The default (`DOCINTEL_ACCEPT_THRESHOLD` unset, calibration config 0.80) sends 13% of fields to a person and lets about 1 in 27 accepted fields through wrong; `0.95` is the strict setting (42% to a person, 99.2% precision). The measured trade-off is in RESULTS.md section 2.3.

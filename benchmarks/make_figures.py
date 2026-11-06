@@ -22,7 +22,7 @@ sys.path.insert(0, str(ROOT / "benchmarks"))
 RAW, FIG = ROOT / "results" / "raw", ROOT / "results" / "figures"
 
 SURFACE, INK, INK2, MUTED, GRID, AXIS = "#fcfcfb", "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
-BLUE, ORANGE = "#2a78d6", "#eb6834", "#1baf7a"
+BLUE, ORANGE = "#2a78d6", "#eb6834"
 
 plt.rcParams.update(
     {

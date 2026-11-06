@@ -2,8 +2,10 @@
 Human review queue that records corrections.
 
 Fields the cascade is not sure about (status "review") wait here. A reviewer confirms or corrects each one; every
-decision is appended to a JSONL file. That file is the most valuable data the system produces: real labels for
-exactly the cases the model finds hard, usable to refit the calibration maps and to measure live accuracy.
+decision is appended to a JSONL file: the corrected values for exactly the cases the model finds hard.
+
+It is a starting point, not yet a training set: it keeps no image, nothing about auto-accepted fields, and only the
+calibrated probability (not the raw token score), so it cannot retrain the model or refit the calibration on its own.
 
 Append-only JSONL keeps it dependency-free and crash-safe (a torn last line is skipped on read).
 """
@@ -87,7 +89,7 @@ class ReviewStore:
         return out
 
     def corrections(self) -> list[dict]:
-        """Resolved decisions: the labelled data the review process produces."""
+        """Resolved decisions: the corrected values the review process produces."""
         return [r for r in self._read() if r["kind"] == "resolved"]
 
     def stats(self) -> dict:

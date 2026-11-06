@@ -6,7 +6,7 @@ Every number below was produced by a script in `benchmarks/` and is stored as ra
 
 | | |
 |---|---|
-| Receipts | **SROIE** (ICDAR 2019; Malaysian shop receipts; `jsdnrs/ICDAR2019-SROIE`, CC-BY-4.0): 626 train, 361 test. Fields: company, date, address, total. **CORD-v2** (Indonesian receipts, `naver-clova-ix/cord-v2`): 100 test. Fields: total, subtotal, tax, menu items |
+| Receipts | **SROIE** (ICDAR 2019; Malaysian shop receipts; `jsdnrs/ICDAR2019-SROIE`, tagged CC-BY-4.0 on Hugging Face): 626 train, 361 test. Fields: company, date, address, total. **CORD-v2** (Indonesian receipts, `naver-clova-ix/cord-v2`): 100 test. Fields: total, subtotal, tax, menu items |
 | Forms | **XFUND** (seven languages: zh, ja, es, fr, it, de, pt): 250 train, 105 test forms. Hindi is out of scope |
 | Document types | **RVL-CDIP** (16 classes of scanned tobacco-industry documents, `chainyo/rvl-cdip`): 100 documents per class from the test split for evaluation, 100 per class from the val split for training and 60 per class for calibration |
 | Models | Qwen2.5-VL-3B and 7B (zero-shot and LoRA fine-tuned) on Modal (A100 for training, A10 for evaluation); DiT-base (`microsoft/dit-base-finetuned-rvlcdip`) on CPU for document types |
@@ -76,10 +76,34 @@ The zero-shot VLM is far from solved on addresses and company names, so this sec
 *Field accuracy is the mean over the four fields of exact match after normalisation. `results/raw/real_compare.json`, from `benchmarks/analyze_real.py`.*
 
 - **Fine-tuning on 506 receipts helps a lot and does not depend on shops seen in training.** Holding the model at 3B, it adds +0.057 field accuracy (interval +0.042 to +0.072) and +0.080 on the 135 unseen shops (+0.052 to +0.107). The fine-tuned 3B beats the zero-shot 7B by +0.067 (+0.048 to +0.086).
-- **The gain is mostly company names (0.80 to 0.91) and addresses (0.61 to 0.71).** Dates and totals were already near 0.97 to 0.99 zero-shot. Addresses remain the weakest field, and only about two receipts in three have every field right.
-- **The 7B is not reliably better than the 3B on accuracy** (+0.009, interval -0.002 to +0.020). It costs about 30% more per page. Its advantage is in calibration (2.3).
-- **Duplicates check.** SROIE contains some re-scanned receipts: 11 of the 361 test receipts have the same company, date and total as a fine-tuning or dev receipt. Removing them moves the fine-tuned 7B from 0.901 to 0.899 and the fine-tuned 3B from 0.892 to 0.889 (zero-shot scores drop by a similar 0.003 to 0.004), so the leakage is real but does not explain the gain (`benchmarks/check_sroie_overlap.py`, `results/raw/sroie_overlap_check.json`). The check uses labels only; I did not compare images pixel by pixel.
+- **The gain is mostly company names (0.80 to 0.91) and addresses (0.61 to 0.71).** Dates and totals were already 0.94 to 0.99 zero-shot. Addresses remain the weakest field, and only about two receipts in three have every field right.
+- **The 7B is not reliably better than the 3B on accuracy** (+0.009, interval -0.002 to +0.020). It costs about a third more per page. Its advantage is in calibration (2.3).
+- **Duplicates check.** SROIE contains some re-scanned receipts: 11 of the 361 test receipts have the same company, date and total as a fine-tuning or dev receipt. Removing them moves the fine-tuned 7B from 0.901 to 0.899 and the fine-tuned 3B from 0.892 to 0.889 (zero-shot scores drop by a similar 0.003 to 0.004; for the fine-tuned models 0.002 to 0.003), so the leakage is real but does not explain the gain (`benchmarks/check_sroie_overlap.py`, `results/raw/sroie_overlap_check.json`). The check uses labels only; I did not compare images pixel by pixel.
 - **Caveats.** One seed per model; the 7B also saw CORD, the 3B did not; the unseen-shop split is by exact company name after normalisation, so near-spelled variants of a shop could straddle the split; and SROIE labels contain typos, which caps measurable accuracy.
+
+#### Where the gain comes from, and where the errors are left
+
+The headline score is strict: a text field must match the label after case and spacing are normalised, so `NO.20. GROUND FLOOR` and
+`NO 20, GROUND FLOOR` count as different. Fine-tuning teaches the model SROIE's punctuation and spacing conventions, which is
+useful for a product with a fixed output format but is not the same as reading the receipt better. To separate the two, a second
+**content** score compares company and address on letters and digits only (dates and amounts are unchanged). It was added after
+seeing the errors, so read it as an explanation, not as a second headline (`benchmarks/analyze_real.py`).
+
+<!-- BEGIN table:ft_content -->
+| 361 SROIE test receipts | field accuracy, strict (headline) | field accuracy, content only | company: strict -> content | address: strict -> content |
+|---|---:|---:|---:|---:|
+| Qwen2.5-VL-7B, zero-shot | 0.825 | 0.931 | 0.80 -> 0.92 | 0.57 -> 0.88 |
+| Qwen2.5-VL-3B, zero-shot | 0.835 | 0.920 | 0.80 -> 0.90 | 0.61 -> 0.85 |
+| **3B, fine-tuned (LoRA, 506 SROIE receipts)** | 0.892 | 0.939 | 0.91 -> 0.94 | 0.71 -> 0.87 |
+| **7B, fine-tuned (LoRA, SROIE + CORD)** | 0.901 | 0.954 | 0.92 -> 0.95 | 0.71 -> 0.90 |
+| gain from fine-tuning, 3B vs same-size zero-shot | +0.057 [+0.042, +0.072] | +0.019 [+0.008, +0.030] |  |  |
+| gain from fine-tuning, 7B vs same-size zero-shot | +0.076 [+0.059, +0.093] | +0.023 [+0.013, +0.033] |  |  |
+<!-- END table:ft_content -->
+
+- **Most of the headline gain is formatting.** Against the same-size zero-shot model, fine-tuning gains +0.057 (3B) and +0.076 (7B) on the strict score but +0.019 and +0.023 on the content score. The content gain is smaller and still excludes zero (intervals above), so fine-tuning does read better, but most of the strict gain is learning the labels' conventions. Addresses show it most: the zero-shot 7B has 0.571 strict and 0.881 content, the fine-tuned 7B 0.715 and 0.900.
+- **What is left in the fine-tuned 7B** (`benchmarks/error_analysis.py`, `results/raw/error_analysis.json`): of 103 wrong addresses, 67 differ only in punctuation, spacing or case and **36 are real content errors (10%)**. Of the 28 wrong company names, 10 are formatting-only. Dates have 8 errors and totals 4 (for example 19.10 read as 18.10, and 3.00 as 2.99).
+- **The one-character address errors are mostly not digits.** 76 addresses are within 2 characters of the label: 51 touch only letters or punctuation (`.` against `,` is the most common edit, 12 times) and 25 touch a digit. At least one is the dataset's own typo (the label `B1750` for a printed postcode `81750`); I did not audit the rest against the images, so I cannot say how many more are label errors.
+- **Resolution does not explain the errors.** 54.6% of test receipts are larger than the 1.4 MP the model sees and are downscaled, some to a 35 MP original. If downscaling caused the errors, the heavily downscaled receipts would do worst; they do best on addresses (0.982 within 2 characters for receipts over 5 MP, against 0.887 for those between 1.4 and 5 MP). I did not run a higher-resolution experiment, and this result is the reason I would not spend GPU time on one.
 
 ### 2.2 CORD (100 real receipts)
 
@@ -115,7 +139,7 @@ threshold that reached 99% precision on dev) and the full trade-off.
 
 - **Fine-tuning improves the probabilities, not only the answers.** Calibrated on the dev receipts and applied unchanged to test, the fine-tuned 7B auto-accepts 58% of fields at 99.2% precision, against 48% at 98.8% for the zero-shot 7B and 39% at 99.5% for the fine-tuned 3B. At a 95% precision target the fine-tuned 7B can auto-accept 90%.
 - **Both fine-tuned models sit within about a point of the 99% dev target**. Calibration was fitted on the same kind of document as the test; it does not transfer between document types, so refit it on a labelled sample of your own documents before relying on a threshold.
-**Every threshold, applied unchanged to the 361 test receipts (1,444 fields).** The thresholds were fixed in advance; none was chosen by looking at test.
+**Every threshold, applied unchanged to the 361 test receipts (1,444 fields).** The grid of thresholds was fixed before looking at test, but the default (0.80) was adopted after this table had been seen, at the owner's request. Its dev-set precision (95.6%) agrees with its test precision (96.3%), which is the reason to trust the choice, not the test result itself.
 
 <!-- BEGIN table:ft_thresholds -->
 | accept threshold (calibrated probability) | 7B: fields auto-accepted | 7B: precision of those | 7B: wrong fields let through per 1,000 | 7B: errors caught by review | 3B: auto-accepted | 3B: precision | 3B: wrong per 1,000 |
@@ -133,7 +157,7 @@ threshold that reached 99% precision on dev) and the full trade-off.
 - **What that costs: review catches only 67% of the model's errors at 0.80**, against 95% at the strict setting (58% accepted, 99.2% precision, 5 wrong per 1,000). One field in 27 that is accepted automatically is wrong. **Most of the leaked errors are addresses**: 35 of the 47 wrong fields accepted at 0.80, because accepted addresses are only 86% correct, against 98.1% for company names and 99.1% for dates and for totals (`test_per_field` in `results/raw/real_compare.json`).
 - **Choose the threshold from what a wrong field costs you.** `DOCINTEL_ACCEPT_THRESHOLD=0.95` gives the strict behaviour for the 7B (the calibrated probability moves in steps, so every threshold from 0.95 to 0.99 behaves the same). The calibration config (`configs/receipt_calibration.json`) records both operating points.
 - The 3B behaves similarly at the default (82% accepted at 0.80, 96.8% precision). The 7B's advantage shows at the strict end: at 0.99 it accepts 58% at 99.2% precision, against 39% for the 3B.
-- **Consequence for the design:** the 7B's higher cost per page ($1.64 against $1.23 per 1,000) is offset by about 760 fewer fields sent to a human per 1,000 pages (42% against 61% of 4,000 fields, at the strict setting), a break-even of about 0.05 cents per review. At any realistic review cost the **fine-tuned 7B with calibrated review is the cheaper total system**; a cheap-model-then-expensive-model cascade adds nothing here because both models cost about the same.
+- **Consequence for the design:** the 7B's higher cost per page ($1.64 against $1.23 per 1,000) is offset by about 780 fewer fields sent to a human per 1,000 pages (42% against 61% of 4,000 fields, at the strict setting), a break-even of about 0.05 cents per review. At any realistic review cost the **fine-tuned 7B with calibrated review is the cheaper total system**; a cheap-model-then-expensive-model cascade adds nothing here because both models cost about the same.
 
 
 ## 3. Document type: which extractor should this go to?
@@ -184,7 +208,7 @@ A receipt extractor must not be fed a form. A DiT-base image classifier (`micros
 
 Everything above is English receipts. As a first test of other languages, the 3B model was fine-tuned and evaluated on **XFUND**, real forms in seven languages (Chinese, Japanese, Spanish, French, Italian, German, Portuguese; Hindi is out of scope). The task differs from receipts: list every filled-in field of the form as a (label, value) pair, taken from XFUND's question-to-answer links.
 
-**Setup.** 250 training forms (about 36 per language, forms with at most 60 pairs, from the XFUND train split), 105 test forms (15 per language, a seeded sample of the XFUND val split), one seed, 2 epochs, LoRA on the 3B (`benchmarks/modal_finetune.py`, 20 minutes on an A100). Protocol fixed before any results: test on all 105 forms and also on the 97 with at most 60 pairs; 2,048 generation tokens for both systems. A pair is matched when key and value are both similar after normalisation (lenient: accent-folded, rapidfuzz ratio at least 85) or equal (exact); precision and recall are over pairs (`src/eval/xfund.py`). Intervals are bootstrap over forms.
+**Setup.** 250 training forms (about 36 per language, forms with at most 60 pairs, from the XFUND train split), 105 test forms (15 per language, a seeded sample of the XFUND val split), one seed, 2 epochs, LoRA on the 3B (`benchmarks/modal_finetune.py`, 19 minutes on an A100). Protocol fixed before any results: test on all 105 forms and also on the 97 with at most 60 pairs; 2,048 generation tokens for both systems. A pair is matched when key and value are both similar after normalisation (lenient: accent-folded, rapidfuzz ratio at least 85) or equal (exact); precision and recall are over pairs (`src/eval/xfund.py`). Intervals are bootstrap over forms.
 
 <!-- BEGIN table:xfund -->
 | XFUND forms (pair F1, lenient) | forms | 3B zero-shot [95% bootstrap] | 3B fine-tuned (250 forms) [95%] | paired per-form gain [95%] |

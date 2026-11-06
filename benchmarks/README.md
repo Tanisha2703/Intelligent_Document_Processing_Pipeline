@@ -12,6 +12,7 @@ One script per experiment. Each writes raw JSON to `results/raw/`; `make_tables.
 | `analyze_real.py`, `analyze_cord.py`, `analyze_xfund.py` | per-dataset results with bootstrap intervals and calibration fitted on dev |
 | `check_cord_overlap.py`, `check_sroie_overlap.py` | memorisation and duplicate checks |
 | `write_receipt_config.py` | writes the calibration files the service loads |
+| `error_analysis.py` | what kinds of errors the fine-tuned model still makes, whether they are formatting or content, and whether image size explains them; writes `results/raw/error_analysis.json` |
 | `embed_doctype.py`, `analyze_doctype.py` | DiT embeddings (CPU, cached); fit, calibrate and evaluate the document-type probe, write `configs/doctype*` |
 | `make_tables.py`, `make_figures.py` | regenerate the tables and figures from `results/raw/` |
 

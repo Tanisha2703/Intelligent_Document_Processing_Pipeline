@@ -1,4 +1,4 @@
-# Doc Extractor demo image (CPU). Serves the Streamlit app; the fine-tuned model runs on Modal.
+# Intelligent Document Processing demo image (CPU). Serves the Streamlit app; the fine-tuned model runs on Modal.
 #   docker build -t docintel .
 #   docker run --rm -p 8501:8501 docintel                                   # recorded examples, no GPU needed
 #   docker run --rm -p 8501:8501 -e DOCINTEL_VLM_APP=docintel-vlm \

@@ -1,5 +1,5 @@
 """
-Doc Extractor demo: extract fields from a receipt, with a calibrated probability per field and a human-review queue.
+Intelligent Document Processing demo: extract fields from a receipt, with a calibrated probability per field and a human-review queue.
 
     streamlit run app.py
 
@@ -25,7 +25,7 @@ CONFIG = ROOT / "configs" / "receipt_calibration.json"
 STORE_PATH = Path(os.environ.get("DOCINTEL_REVIEW_PATH", ROOT / "data" / "review" / "review.jsonl"))
 GOOD, WARN = "#1baf7a", "#eb6834"
 
-st.set_page_config(page_title="Doc Extractor", page_icon="🧾", layout="wide")
+st.set_page_config(page_title="Intelligent Document Processing", page_icon="🧾", layout="wide")
 st.markdown(
     """
     <style>
@@ -168,7 +168,7 @@ def extract_tab():
                 "The daily limit of live extractions has been reached; it resets at 00:00 UTC. The recorded examples still work."
             )
             return
-        with st.spinner("Reading the receipt (the first call after idle waits for a cold GPU, about a minute)..."):
+        with st.spinner("Reading the receipt (the first call after idle waits for a cold GPU, under a minute)..."):
             try:
                 result = ext.extract(prepare_image(up.getvalue()))
             except Exception as exc:
@@ -216,7 +216,7 @@ def review_tab():
 
 
 def main():
-    st.markdown("## Doc Extractor")
+    st.markdown("## Intelligent Document Processing")
     st.caption(
         "Receipt fields with a calibrated probability each. A fine-tuned Qwen2.5-VL reads the receipt; "
         "fields it is unsure about go to a person."

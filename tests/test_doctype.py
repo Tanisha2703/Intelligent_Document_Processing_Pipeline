@@ -164,3 +164,10 @@ def test_document_endpoint_validates_uploads_and_configuration(tmp_path, monkeyp
     assert c.post("/document", files={"file": ("d.png", b"not an image", "image/png")}).status_code == 422
     assert post(TestClient(create_app(None, tmp_path / "r2.jsonl"))).status_code == 503
     assert c.get("/health").json()["doctype_configured"] is True
+
+
+def test_document_endpoint_refuses_an_image_with_too_many_pixels(tmp_path):
+    big = io.BytesIO()
+    Image.new("1", (7000, 7000)).save(big, "PNG")
+    r = client(tmp_path, "receipt").post("/document", files={"file": ("huge.png", big.getvalue(), "image/png")})
+    assert r.status_code == 413

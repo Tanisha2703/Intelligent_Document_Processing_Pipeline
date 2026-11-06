@@ -211,6 +211,51 @@ def t_ft_thresholds() -> str | None:
     )
 
 
+def t_ft_content() -> str | None:
+    """How much of each system's score is reading the characters, and how much is matching the labels' formatting?"""
+    d = _load("real_compare.json")
+    if not d:
+        return None
+    rows = []
+    for k, label in FT_NAMES.items():
+        s = d["systems"].get(k)
+        if not s or "field_accuracy_content" not in s["all"]:
+            continue
+        a = s["all"]
+        pf, pc = a["per_field_exact"], a["per_field_content"]
+        rows.append(
+            [
+                label,
+                f"{a['field_accuracy']:.3f}",
+                f"{a['field_accuracy_content']:.3f}",
+                f"{pf['company']:.2f} -> {pc['company']:.2f}",
+                f"{pf['address']:.2f} -> {pc['address']:.2f}",
+            ]
+        )
+    for k, name in (("fine_tuned_3b", "3B"), ("fine_tuned_7b", "7B")):
+        p = d["systems"][k]["paired_vs_same_size_zero_shot"]
+        e, c = p["all"], p["all_content_metric"]
+        rows.append(
+            [
+                f"gain from fine-tuning, {name} vs same-size zero-shot",
+                f"{e['diff']:+.3f} [{e['ci95'][0]:+.3f}, {e['ci95'][1]:+.3f}]",
+                f"{c['diff']:+.3f} [{c['ci95'][0]:+.3f}, {c['ci95'][1]:+.3f}]",
+                "",
+                "",
+            ]
+        )
+    return _md(
+        [
+            "361 SROIE test receipts",
+            "field accuracy, strict (headline)",
+            "field accuracy, content only",
+            "company: strict -> content",
+            "address: strict -> content",
+        ],
+        rows,
+    )
+
+
 def t_ft_cord() -> str | None:
     d = _load("cord_compare.json")
     o = _load("cord_overlap_check.json")
@@ -429,6 +474,7 @@ TABLES = {
         t_ft_sroie_paired,
         t_ft_calibration,
         t_ft_thresholds,
+        t_ft_content,
         t_ft_cord,
         t_xfund,
         t_doctype_types,

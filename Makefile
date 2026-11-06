@@ -4,7 +4,7 @@
 install:            ## runtime + test dependencies, and the linter
 	pip install -r requirements.txt ruff
 
-test:               ## 113 tests, about 10 seconds, no GPU and no network
+test:               ## 117 tests, about 10 seconds, no GPU and no network
 	pytest -q
 
 lint:               ## static checks and formatting check (the same as CI)

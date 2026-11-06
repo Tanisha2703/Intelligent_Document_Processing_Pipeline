@@ -20,6 +20,13 @@
      0.8455678670360111
     ],
     "near_exact_accuracy": 0.8746537396121884,
+    "per_field_content": {
+     "company": 0.9196675900277008,
+     "address": 0.8808864265927978,
+     "date": 0.9390581717451524,
+     "total": 0.9861495844875346
+    },
+    "field_accuracy_content": 0.9314404432132964,
     "receipts_all_fields_exact": 0.5124653739612188,
     "seconds_per_page": 4.149793774797645
    },
@@ -37,6 +44,13 @@
      0.8849557522123894
     ],
     "near_exact_accuracy": 0.8949115044247787,
+    "per_field_content": {
+     "company": 0.9911504424778761,
+     "address": 0.9026548672566371,
+     "date": 0.9203539823008849,
+     "total": 0.995575221238938
+    },
+    "field_accuracy_content": 0.952433628318584,
     "receipts_all_fields_exact": 0.6017699115044248,
     "seconds_per_page": 4.161944783894362
    },
@@ -54,6 +68,13 @@
      0.8018518518518518
     ],
     "near_exact_accuracy": 0.8407407407407408,
+    "per_field_content": {
+     "company": 0.8,
+     "address": 0.8444444444444444,
+     "date": 0.9703703703703703,
+     "total": 0.9703703703703703
+    },
+    "field_accuracy_content": 0.8962962962962963,
     "receipts_all_fields_exact": 0.362962962962963,
     "seconds_per_page": 4.129452085494995
    },
@@ -329,6 +350,13 @@
      0.8552631578947368
     ],
     "near_exact_accuracy": 0.8864265927977839,
+    "per_field_content": {
+     "company": 0.9002770083102493,
+     "address": 0.850415512465374,
+     "date": 0.9584487534626038,
+     "total": 0.9695290858725761
+    },
+    "field_accuracy_content": 0.9196675900277008,
     "receipts_all_fields_exact": 0.5263157894736842,
     "seconds_per_page": 3.8016186638882288
    },
@@ -346,6 +374,13 @@
      0.911504424778761
     ],
     "near_exact_accuracy": 0.9303097345132744,
+    "per_field_content": {
+     "company": 0.9867256637168141,
+     "address": 0.8805309734513275,
+     "date": 0.9646017699115044,
+     "total": 0.9734513274336283
+    },
+    "field_accuracy_content": 0.9513274336283186,
     "receipts_all_fields_exact": 0.6548672566371682,
     "seconds_per_page": 3.8145221777721843
    },
@@ -363,6 +398,13 @@
      0.7814814814814814
     ],
     "near_exact_accuracy": 0.812962962962963,
+    "per_field_content": {
+     "company": 0.7555555555555555,
+     "address": 0.8,
+     "date": 0.9481481481481482,
+     "total": 0.9629629629629629
+    },
+    "field_accuracy_content": 0.8666666666666667,
     "receipts_all_fields_exact": 0.3111111111111111,
     "seconds_per_page": 3.7800172258306435
    },
@@ -672,6 +714,13 @@
      0.9078947368421053
     ],
     "near_exact_accuracy": 0.9556786703601108,
+    "per_field_content": {
+     "company": 0.9362880886426593,
+     "address": 0.8670360110803325,
+     "date": 0.9695290858725761,
+     "total": 0.9833795013850416
+    },
+    "field_accuracy_content": 0.9390581717451524,
     "receipts_all_fields_exact": 0.6343490304709142,
     "seconds_per_page": 3.123561076510316
    },
@@ -689,6 +738,13 @@
      0.9469026548672567
     ],
     "near_exact_accuracy": 0.9789823008849557,
+    "per_field_content": {
+     "company": 0.995575221238938,
+     "address": 0.8938053097345132,
+     "date": 0.9690265486725663,
+     "total": 1.0
+    },
+    "field_accuracy_content": 0.9646017699115044,
     "receipts_all_fields_exact": 0.7389380530973452,
     "seconds_per_page": 3.134496245763998
    },
@@ -706,6 +762,13 @@
      0.8537037037037037
     ],
     "near_exact_accuracy": 0.9166666666666666,
+    "per_field_content": {
+     "company": 0.837037037037037,
+     "address": 0.8222222222222222,
+     "date": 0.9703703703703703,
+     "total": 0.9555555555555556
+    },
+    "field_accuracy_content": 0.8962962962962963,
     "receipts_all_fields_exact": 0.45925925925925926,
     "seconds_per_page": 3.105254793167114
    },
@@ -999,6 +1062,14 @@
       0.10740740740740741
      ],
      "n": 135
+    },
+    "all_content_metric": {
+     "diff": 0.019390581717451522,
+     "ci95": [
+      0.007617728531855956,
+      0.030470914127423823
+     ],
+     "n": 361
     }
    }
   },
@@ -1017,6 +1088,13 @@
      0.9155124653739612
     ],
     "near_exact_accuracy": 0.9646814404432132,
+    "per_field_content": {
+     "company": 0.9501385041551247,
+     "address": 0.9002770083102493,
+     "date": 0.9778393351800554,
+     "total": 0.9889196675900277
+    },
+    "field_accuracy_content": 0.9542936288088643,
     "receipts_all_fields_exact": 0.6537396121883656,
     "seconds_per_page": 4.169117026051656
    },
@@ -1034,6 +1112,13 @@
      0.9502212389380531
     ],
     "near_exact_accuracy": 0.9834070796460177,
+    "per_field_content": {
+     "company": 0.995575221238938,
+     "address": 0.915929203539823,
+     "date": 0.9823008849557522,
+     "total": 0.995575221238938
+    },
+    "field_accuracy_content": 0.9723451327433629,
     "receipts_all_fields_exact": 0.7522123893805309,
     "seconds_per_page": 4.180246881679096
    },
@@ -1051,6 +1136,13 @@
      0.8722222222222222
     ],
     "near_exact_accuracy": 0.9333333333333333,
+    "per_field_content": {
+     "company": 0.8740740740740741,
+     "address": 0.8740740740740741,
+     "date": 0.9703703703703703,
+     "total": 0.9777777777777777
+    },
+    "field_accuracy_content": 0.924074074074074,
     "receipts_all_fields_exact": 0.4888888888888889,
     "seconds_per_page": 4.150484823297571
    },
@@ -1348,6 +1440,14 @@
       0.10555555555555556
      ],
      "n": 135
+    },
+    "all_content_metric": {
+     "diff": 0.022853185595567867,
+     "ci95": [
+      0.013157894736842105,
+      0.03254847645429363
+     ],
+     "n": 361
     }
    },
    "paired_vs_fine_tuned_3b": {

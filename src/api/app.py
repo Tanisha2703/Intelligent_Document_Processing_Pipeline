@@ -4,7 +4,7 @@ HTTP service: document routing, receipt extraction with calibrated probabilities
   POST /document                    upload any document image: classify its type, route it, extract if a model supports it
   POST /receipt                     upload a receipt image; fields with calibrated probabilities and review flags
   GET  /review/queue                documents with fields waiting for a human
-  POST /review/{doc}/{field}        a reviewer confirms or corrects one field (recorded as labelled data)
+  POST /review/{doc}/{field}        a reviewer confirms or corrects one field (the corrected value is logged)
   GET  /monitor                     drift of the confidence distribution against the dev-set reference, review statistics
   GET  /health                      (open; everything else needs the API key or a local client, see src/utils/guard.py)
 
@@ -73,7 +73,7 @@ def create_app(
     max_gpu_calls_per_day: int | None = None,
 ) -> FastAPI:
     """Build the service. Every model argument can be injected (the tests do); otherwise it comes from `backends`."""
-    app = FastAPI(title="Doc Extractor", version="3.0")
+    app = FastAPI(title="Intelligent Document Processing Pipeline", version="3.0")
     store = ReviewStore(review_path or ROOT / "data" / "review" / "review.jsonl")
     monitor = DriftMonitor(reference_scores if reference_scores is not None else backends.reference_scores())
     cap = DailyCap(max_gpu_calls_per_day) if max_gpu_calls_per_day is not None else cap_from_env()
@@ -118,6 +118,8 @@ def create_app(
         try:
             png = prepare_image(data)
             kind = clf.classify(png)
+        except HTTPException:
+            raise
         except Exception as exc:
             raise HTTPException(422, f"could not classify the document: {type(exc).__name__}: {exc}") from exc
         out = {

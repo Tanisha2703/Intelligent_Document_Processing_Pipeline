@@ -112,3 +112,19 @@ def test_monitor_flags_a_shift_after_enough_receipts(tmp_path):
         post(c)
     d = c.get("/monitor").json()["drift"]
     assert d["level"] == "large" and d["mean_score"] > d["reference_mean_score"]
+
+
+def test_an_image_with_too_many_pixels_is_refused_before_decoding(tmp_path):
+    big = io.BytesIO()
+    Image.new("1", (7000, 7000)).save(big, "PNG")  # 49 megapixels but a tiny file (all one colour)
+    c = client(tmp_path)
+    r = post(c, "huge.png", big.getvalue())
+    assert r.status_code == 413 and "megapixels" in r.json()["detail"]
+
+
+def test_a_multi_page_image_is_refused_not_silently_cut_to_its_first_page(tmp_path):
+    pages = [Image.new("RGB", (60, 40), c) for c in ("white", "red")]
+    b = io.BytesIO()
+    pages[0].save(b, "TIFF", save_all=True, append_images=pages[1:])
+    r = post(client(tmp_path), "scan.tiff", b.getvalue())
+    assert r.status_code == 422 and "2 pages" in r.json()["detail"]

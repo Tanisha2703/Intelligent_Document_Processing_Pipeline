@@ -20,7 +20,7 @@ import numpy as np
 ROOT = Path(__file__).parents[1]
 sys.path.insert(0, str(ROOT))
 from src.eval.calibration import choose_accept, ece  # noqa: E402
-from src.eval.receipts import ETYPE, correct  # noqa: E402
+from src.eval.receipts import ETYPE, content_match, correct  # noqa: E402
 from src.pipeline.calibration import IsotonicMap  # noqa: E402
 
 # name -> (test file tag, dev file tag or None)
@@ -48,6 +48,10 @@ def fields_ok(r, near=False):
     return [correct(f, r["truth"][f], r["fields"].get(f), near=near) for f in ETYPE]
 
 
+def fields_content(r):
+    return [content_match(f, r["truth"][f], r["fields"].get(f)) for f in ETYPE]
+
+
 def boot_ci(xs, n=2000, seed=0):
     rng = random.Random(seed)
     m = sorted(sum(rng.choice(xs) for _ in xs) / len(xs) for _ in range(n))
@@ -64,19 +68,32 @@ def summary(recs, files):
         "field_accuracy": float(np.mean(ok)),
         "ci95": boot_ci(ok),
         "near_exact_accuracy": float(np.mean([np.mean(fields_ok(r, near=True)) for r in rs])),
+        "per_field_content": {
+            f: float(np.mean([content_match(f, r["truth"][f], r["fields"].get(f)) for r in rs])) for f in ETYPE
+        },
+        "field_accuracy_content": float(np.mean([np.mean(fields_content(r)) for r in rs])),
         "receipts_all_fields_exact": float(np.mean([all(fields_ok(r)) for r in rs])),
         "seconds_per_page": float(np.mean([r["item_seconds"] for r in rs])),
     }
 
 
-def paired(a, b, files, seed=0):
-    d = [float(np.mean(fields_ok(b[f])) - np.mean(fields_ok(a[f]))) for f in files if f in a and f in b]
+def paired(a, b, files, seed=0, metric=None):
+    metric = metric or fields_ok
+    d = [float(np.mean(metric(b[f])) - np.mean(metric(a[f]))) for f in files if f in a and f in b]
     rng = random.Random(seed)
     m = sorted(sum(rng.choice(d) for _ in d) / len(d) for _ in range(2000))
     return {"diff": float(np.mean(d)), "ci95": [m[50], m[1949]], "n": len(d)}
 
 
-OPERATING_THRESHOLDS = (0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99)  # fixed in advance: none was picked by looking at test
+OPERATING_THRESHOLDS = (
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    0.95,
+    0.99,
+)  # the grid was fixed before looking at test; the shipped default (0.80) was adopted afterwards
 
 
 def operating_point(pd_, yd, pt, yt, thr, fields):
@@ -179,6 +196,7 @@ def main():
             res["systems"][ft]["paired_vs_same_size_zero_shot"] = {
                 "all": paired(loaded[zs][0], loaded[ft][0], files),
                 "unseen_shops": paired(loaded[zs][0], loaded[ft][0], sorted(unseen)),
+                "all_content_metric": paired(loaded[zs][0], loaded[ft][0], files, metric=fields_content),
             }
     if "fine_tuned_7b" in res["systems"] and loaded["fine_tuned_3b"][0] and loaded["fine_tuned_7b"][0]:
         res["systems"]["fine_tuned_7b"]["paired_vs_fine_tuned_3b"] = {
