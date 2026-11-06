@@ -1,2 +1,3 @@
-"""Multilingual Document Intelligence Pipeline — source package."""
-__version__ = "1.0.0"
+"""Doc Extractor: receipt field extraction with calibrated confidence and human review."""
+
+__version__ = "3.0.0"

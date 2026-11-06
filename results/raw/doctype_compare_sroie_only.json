@@ -1,0 +1,256 @@
+{
+ "_run": {
+  "probe": "logistic regression on 768-d DiT embeddings, 17 classes",
+  "C": 0.01,
+  "dev_accuracy": 0.925,
+  "train_docs": 2106,
+  "dev_docs": 1080,
+  "receipt_formats_in_training": "sroie",
+  "accept_threshold_for_95pct_dev_precision": 0.6666666666666666
+ },
+ "rvlcdip_test": {
+  "n": 1600,
+  "per_class_n": 100,
+  "native_dit_accuracy": 0.9375,
+  "native_ci95": [
+   0.925,
+   0.949375
+  ],
+  "probe_accuracy": 0.925,
+  "probe_ci95": [
+   0.911875,
+   0.9375
+  ],
+  "probe_predicted_receipt": 0.0075,
+  "per_class": {
+   "advertisement": {
+    "native": 0.97,
+    "probe": 0.97
+   },
+   "budget": {
+    "native": 0.92,
+    "probe": 0.9
+   },
+   "email": {
+    "native": 0.98,
+    "probe": 0.98
+   },
+   "file folder": {
+    "native": 0.95,
+    "probe": 0.92
+   },
+   "form": {
+    "native": 0.86,
+    "probe": 0.8
+   },
+   "handwritten": {
+    "native": 0.99,
+    "probe": 0.99
+   },
+   "invoice": {
+    "native": 0.91,
+    "probe": 0.89
+   },
+   "letter": {
+    "native": 0.94,
+    "probe": 0.93
+   },
+   "memo": {
+    "native": 0.95,
+    "probe": 0.95
+   },
+   "news article": {
+    "native": 0.95,
+    "probe": 0.95
+   },
+   "presentation": {
+    "native": 0.91,
+    "probe": 0.89
+   },
+   "questionnaire": {
+    "native": 0.88,
+    "probe": 0.88
+   },
+   "resume": {
+    "native": 0.97,
+    "probe": 0.97
+   },
+   "scientific publication": {
+    "native": 0.94,
+    "probe": 0.93
+   },
+   "scientific report": {
+    "native": 0.92,
+    "probe": 0.92
+   },
+   "specification": {
+    "native": 0.96,
+    "probe": 0.93
+   }
+  },
+  "top_confusions": [
+   [
+    "budget",
+    "scientific report",
+    4
+   ],
+   [
+    "form",
+    "receipt",
+    4
+   ],
+   [
+    "form",
+    "questionnaire",
+    4
+   ],
+   [
+    "scientific publication",
+    "scientific report",
+    4
+   ],
+   [
+    "form",
+    "advertisement",
+    3
+   ],
+   [
+    "invoice",
+    "form",
+    3
+   ],
+   [
+    "invoice",
+    "receipt",
+    3
+   ],
+   [
+    "news article",
+    "scientific publication",
+    3
+   ]
+  ]
+ },
+ "sroie_test_receipts": {
+  "n": 361,
+  "probe_predicted_receipt": 0.9889196675900277,
+  "probe_predictions": {
+   "receipt": 357,
+   "specification": 1,
+   "form": 1,
+   "scientific report": 1,
+   "invoice": 1
+  },
+  "native_dit_predictions": {
+   "invoice": 217,
+   "form": 57,
+   "budget": 35,
+   "specification": 26,
+   "scientific publication": 10
+  }
+ },
+ "cord_test_receipts_unseen_format": {
+  "n": 100,
+  "probe_predicted_receipt": 0.7,
+  "probe_predictions": {
+   "receipt": 70,
+   "advertisement": 23,
+   "file folder": 2,
+   "handwritten": 2,
+   "presentation": 1
+  },
+  "native_dit_predictions": {
+   "advertisement": 39,
+   "invoice": 36,
+   "budget": 13,
+   "scientific publication": 4,
+   "handwritten": 3
+  }
+ },
+ "cord_validation_receipts_unseen_format": {
+  "n": 100,
+  "probe_predicted_receipt": 0.81,
+  "probe_predictions": {
+   "receipt": 81,
+   "advertisement": 13,
+   "file folder": 3,
+   "news article": 2,
+   "handwritten": 1
+  },
+  "native_dit_predictions": {
+   "invoice": 41,
+   "advertisement": 36,
+   "budget": 11,
+   "file folder": 5,
+   "handwritten": 3
+  }
+ },
+ "xfund_test_forms": {
+  "n": 105,
+  "probe_predictions": {
+   "form": 67,
+   "receipt": 10,
+   "questionnaire": 9,
+   "scientific report": 7,
+   "specification": 4,
+   "advertisement": 3
+  },
+  "native_dit_predictions": {
+   "form": 80,
+   "questionnaire": 7,
+   "specification": 6,
+   "budget": 4,
+   "advertisement": 3,
+   "scientific report": 3
+  },
+  "routed_to_form_extractor": 0.7238095238095238,
+  "wrongly_routed_to_receipt_extractor": 0.09523809523809523
+ },
+ "calibration_on_known_labels": {
+  "n": 2061,
+  "ece_raw": 0.01465371516136129,
+  "ece_calibrated": 0.008947909042396339
+ },
+ "routing": {
+  "accept_threshold": 0.6666666666666666,
+  "n": 2166,
+  "receipt": {
+   "routed": 428,
+   "precision": 0.9742990654205608,
+   "recall": 0.9045553145336226
+  },
+  "form": {
+   "routed": 241,
+   "precision": 0.9585062240663901,
+   "recall": 0.7573770491803279
+  },
+  "human": {
+   "routed": 1497,
+   "precision": 0.9251837007348029,
+   "recall": 0.9892857142857143
+  },
+  "receipts_sent_to_the_wrong_extractor": 0,
+  "by_source": {
+   "rvlcdip_test": {
+    "n": 1600,
+    "routing_correct": 0.97,
+    "to_human": 0.885
+   },
+   "sroie_test": {
+    "n": 361,
+    "routing_correct": 0.9833795013850416,
+    "to_human": 0.01662049861495845
+   },
+   "cord_test": {
+    "n": 100,
+    "routing_correct": 0.62,
+    "to_human": 0.38
+   },
+   "xfund_test": {
+    "n": 105,
+    "routing_correct": 0.6095238095238096,
+    "to_human": 0.3523809523809524
+   }
+  }
+ }
+}

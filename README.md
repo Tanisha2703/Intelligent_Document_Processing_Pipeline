@@ -1,264 +1,377 @@
-# Multilingual Document Intelligence Pipeline
+# Doc Extractor: receipt and form data extraction with a vision-language model
 
-> End-to-end document processing for Hindi and English — OCR → NER → Classification → Structured Export
+> An OCR-free alternative for **receipt OCR and document data extraction**: a fine-tuned **Qwen2.5-VL** (LoRA) reads the image directly, gives every field a **calibrated confidence score**, routes documents by type, and sends uncertain fields to a **human-in-the-loop review queue**. Benchmarked on SROIE, CORD, XFUND and RVL-CDIP.
 
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://python.org)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.29%2B-red)](https://streamlit.io)
-[![Accuracy](https://img.shields.io/badge/Accuracy-92%25%2B-brightgreen)](docs/FINE_TUNING.md)
-[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+Reads scanned documents (receipts, forms) and pulls out their fields, with a **calibrated probability on every field** and a human-review queue for what the model is unsure about. It first works out what kind of document it is and routes it to the right extractor. A DiT classifier decides what kind of document it is; a Qwen2.5-VL model fine-tuned with LoRA on real receipts extracts the fields; everything uncertain goes to a person. Measured on public real-world datasets against zero-shot baselines.
 
----
+![python](https://img.shields.io/badge/python-3.12-blue) ![license](https://img.shields.io/badge/license-MIT-green) ![tests](https://img.shields.io/badge/tests-113%20passing-brightgreen)
 
-## What It Does
+**Jump to:** [Why](#why-this-exists) · [Screenshots](#screenshots) · [Results](#results-on-real-documents) · [How it works](#how-it-works) · [Run it](#run-it) · [API](#api-reference) · [Datasets](#datasets) · [Quick answers](#quick-answers) · [Limitations](#limitations) · [Layout](#repository-layout)
 
-Upload any Hindi, English, or mixed-language document (PDF, PNG, JPG, TIFF) and get:
+## Why this exists
 
-| Stage | Technology | Output |
-|-------|-----------|--------|
-| OCR Extraction | Tesseract 5 + OpenCV preprocessing | Full text with word-level confidence |
-| Language Detection | Unicode analysis + langdetect | "hindi" / "english" / "mixed" |
-| Named Entity Recognition | Fine-tuned XLM-RoBERTa | 8 entity types (Person, Org, Location, Date, Amount, ID, Phone, Email) |
-| Document Classification | Fine-tuned XLM-RoBERTa | 8 categories (Invoice, Receipt, ID Card, Legal, Medical, Bank, Govt Form, Letter) |
-| Structured Export | pandas + openpyxl | JSON / CSV / Excel (3 sheets) |
+A vision-language model will read a receipt and return a clean-looking answer, and it looks exactly as sure when it
+is wrong. Extracting fields is the easy part; the hard part is knowing **which answers to trust**. Doc Extractor is built
+around three questions:
 
----
+1. **Is this the kind of document I can handle?** A classifier decides before any extraction, so a form never gets
+   read as a receipt, and unknown types go to a person instead of being guessed at.
+2. **Is each field right?** Every field carries a calibrated probability, so "0.99" means about 99 out of 100 such
+   fields were correct on held-out receipts. Fields above a threshold chosen on a separate dev set are accepted
+   automatically. You choose the threshold: at the default the fine-tuned 7B accepts 87% of fields at 96.3% precision, and the
+   strict setting accepts 58% at 99.2%.
+3. **When it is unsure, who checks, and does the system learn from it?** Uncertain fields go to a review queue, every
+   correction is stored as a labelled example, and a drift monitor warns when incoming documents stop looking like
+   the ones the thresholds were fitted on.
 
-## Quick Start (5 commands)
+Everything is measured on public real-world datasets against zero-shot baselines, with the raw numbers in the
+repository.
+
+## What it does
+
+Upload a document image. The service classifies its type, routes it, and returns fields with a probability and a decision. Real output from the deployed service on a receipt from the SROIE test set (not used in training):
+
+```
+company  review p=0.528  PETRON BKT LANJAN SB ALSERKAM ENTERPRISE      <- model appended extra words; correctly flagged
+date     auto   p=0.992  01/02/2018
+address  auto   p=0.838  KM 458.4 BKT LANJAN UTARA, L/RAYA UTARA SELATAN,SG BULOH 47000 SUNGAI BUL
+total    auto   p=0.992  4.90
+needs review: ['company']   (accept threshold 0.80; 35.9 s on the first call, which includes a cold GPU start)
+```
+
+| Document type (DiT probe) | Goes to | What you get |
+|---|---|---|
+| receipt | receipt extractor (fine-tuned Qwen2.5-VL) | company, date, address, total, each with a calibrated probability; fields above the threshold are accepted automatically |
+| form, questionnaire | form extractor (XFUND adapter) | label/value pairs in seven languages; every pair is flagged for review (F1 0.44, uncalibrated) |
+| anything else, or the classifier is unsure | a person | the predicted type is queued for correction (no extractor has been validated on invoices, letters, ...) |
+
+Every correction a reviewer makes is stored as a labelled example, and a drift monitor watches the confidence distribution so a change in the incoming documents shows up before anyone has labelled anything.
+
+## Screenshots
+
+Captured from the running system on documents from the test splits (nothing here was in training): the Streamlit demo reading an uploaded receipt on the GPU, and the `/document` endpoint routing three different document types.
+
+![Streamlit demo reading an uploaded receipt live: three fields accepted at p=0.99, the address flagged for review at 0.78](docs/img/demo_live_upload.png)
+
+| Receipt -> receipt extractor | Form (German, XFUND) -> form extractor | Letter (RVL-CDIP) -> a person |
+|---|---|---|
+| ![receipt response](docs/img/api_receipt.png) | ![form response](docs/img/api_form.png) | ![letter response](docs/img/api_letter.png) |
+
+The recorded-examples view of the demo (works with no GPU): [docs/img/demo_recorded.png](docs/img/demo_recorded.png).
+
+## Tech stack
+
+| Layer | What it uses |
+|---|---|
+| Field extraction | Qwen2.5-VL 3B and 7B, fine-tuned with LoRA (PEFT, bf16) on Modal GPUs: A100 to train, A10 to serve |
+| Document type | DiT-base (`microsoft/dit-base-finetuned-rvlcdip`) embeddings and a scikit-learn logistic-regression probe, on CPU |
+| Confidence | token log-probabilities, isotonic regression (scikit-learn), PSI drift monitor |
+| Service | FastAPI and Uvicorn; Streamlit demo; append-only JSONL review store |
+| Evaluation | paired bootstrap intervals, rapidfuzz matching, numpy; matplotlib figures generated from raw JSON |
+| Tooling | pytest (113 tests), ruff, GitHub Actions, Docker, Modal |
+
+## Results on real documents
+
+Public datasets: **SROIE** (361 real scanned shop receipts in the test split), **CORD** (100 test receipts), **XFUND** (105 forms, 7 languages) and **RVL-CDIP** (1,600 test documents, 16 classes). All numbers are on test documents, with 95% bootstrap intervals; details, caveats and raw files are in [docs/RESULTS.md](docs/RESULTS.md).
+
+### Receipts: field accuracy on SROIE
+
+Company, date, address, total; exact match after normalisation.
+
+| system | field accuracy | 95% interval | shops never seen in training | receipts with every field right |
+|---|---:|---:|---:|---:|
+| Qwen2.5-VL-7B, zero-shot | 0.825 | [0.803, 0.846] | 0.767 | 51% |
+| Qwen2.5-VL-3B, zero-shot | 0.835 | [0.814, 0.855] | 0.744 | 53% |
+| **3B, fine-tuned (LoRA, 506 receipts, about $2)** | **0.892** | [0.876, 0.908] | 0.824 | 63% |
+| **7B, fine-tuned (LoRA, SROIE + CORD)** | **0.901** | [0.886, 0.916] | 0.843 | 65% |
+
+- **Fine-tuning is worth +0.057 field accuracy at the same model size** (interval +0.042 to +0.072), and **+0.080 on shops never seen in fine-tuning** (+0.052 to +0.107). The fine-tuned 3B beats the zero-shot 7B by +0.067 (+0.048 to +0.086).
+- **The 7B is not reliably more accurate than the 3B** (+0.009, interval -0.002 to +0.020), but its probabilities are better, which matters for review (below).
+- **Weakest field: address** (0.71); the largest gains are on company names (0.80 to 0.91) and addresses. Dates and totals were already near 0.97 to 0.99.
+
+![Field accuracy on real SROIE receipts](results/figures/real_sroie_accuracy.png)
+
+### Calibrated review
+
+Confidence is calibrated on a 120-receipt dev set that shares no shop with fine-tuning. A field is accepted automatically when its calibrated probability reaches the **accept threshold**, which is a choice about how many errors you can tolerate. The default is **0.80**; here is what each setting does on the 361 test receipts (fine-tuned 7B, 1,444 fields, thresholds fixed in advance):
+
+| accept threshold | fields auto-accepted | precision of those | wrong fields let through per 1,000 | errors caught by review |
+|---:|---:|---:|---:|---:|
+| 0.60 | 94% | 93.6% | 60 | 40% |
+| 0.70 | 91% | 94.8% | 47 | 52% |
+| **0.80 (default)** | **87%** | **96.3%** | **33** | **67%** |
+| 0.90 | 69% | 98.6% | 10 | 90% |
+| 0.95 | 59% | 99.2% | 5 | 95% |
+
+- **At 0.80, 87% of fields need no review, but one accepted field in 27 is wrong, and review catches only 67% of the model's errors.** Most of the leaked errors are addresses (accepted addresses are 86% correct; dates and totals 99.1%).
+- **Set `DOCINTEL_ACCEPT_THRESHOLD=0.95` for the strict behaviour**: 58 to 59% accepted at 99.2% precision, 95% of errors caught. Every threshold from 0.95 to 0.99 behaves the same, because calibrated probabilities move in steps.
+- The full table, for the 3B as well, is in [RESULTS.md](docs/RESULTS.md) section 2.3.
+
+At the strict 99%-precision setting the three systems compare as follows (the threshold here is the lowest one that reached 99% precision on dev):
+
+| system | auto-accepted | precision of those | errors caught by review |
+|---|---:|---:|---:|
+| 7B, zero-shot | 48% | 98.8% | 97% |
+| 3B, fine-tuned | 39% | 99.5% | 98% |
+| **7B, fine-tuned** | **58%** | **99.2%** | 95% |
+
+![Accuracy of auto-accepted fields against the share accepted](results/figures/real_risk_coverage.png)
+
+At the strict setting the fine-tuned 7B costs about 30% more per page ($1.64 against $1.23 per 1,000 pages at Modal list prices) but sends about 760 fewer fields to a human per 1,000 pages, a break-even of about 0.05 cents per review. **At any realistic review cost the fine-tuned 7B with calibrated review is the cheaper total system.**
+
+**CORD** (items and amounts, 100 test receipts, so wide intervals): menu-item F1 **0.911** fine-tuned against 0.841 zero-shot on receipts not resembling training ones. The headline scalar score is inflated by the model learning CORD's labelling convention for absent subtotal/tax lines, and 24 of 100 test receipts have a near-duplicate item list in training; both effects were measured ([RESULTS.md](docs/RESULTS.md) section 2.2).
+
+### Document type routing
+
+A 17-class linear probe on DiT-base embeddings (the 16 RVL-CDIP classes plus *receipt*), calibrated on a disjoint dev set.
+
+| | result |
+|---|---|
+| RVL-CDIP test accuracy | probe **0.922** [0.909, 0.936] against DiT's own 16-class head 0.938 [0.925, 0.949] (the probe adds the receipt class) |
+| SROIE / CORD test receipts recognised as receipts | 99.2% / 98.0% (CORD receipts were **70%** before CORD was added to the probe's training data: a new receipt format needs a few labelled examples and a refit) |
+| receipts sent to the form extractor | 0 of 463 routed |
+| routing precision / recall, 2,166 test documents | receipt 0.972 / 0.976; form 0.957 / 0.725 |
+| **risk** | 12 of 105 XFUND forms (11%) and 5 of 100 RVL-CDIP invoices are called receipts |
+
+RVL-CDIP is old black-and-white tobacco-industry scans, so this stage says nothing about modern phone photos; the CORD and XFUND checks are what guard against the classifier telling "receipt" from "old scan" by image style. Section 3 of [RESULTS.md](docs/RESULTS.md).
+
+### Multilingual forms (preliminary)
+
+Same fine-tuning recipe on **XFUND**, real forms in Chinese, Japanese, Spanish, French, Italian, German and Portuguese (list each filled-in field as a label/value pair). With 250 training forms and the 3B model, pair F1 on 105 test forms goes from **0.362 to 0.438** (paired gain +0.101, interval +0.055 to +0.147): clear in Chinese (+0.234), Japanese (+0.165) and German (+0.147), not distinguishable from zero in the other four. **The absolute level is low** (precision 0.49, recall 0.40) with 15 test forms per language and one seed: fine-tuning carries over to other languages, but this is not a usable form extractor, so the service flags every pair for review. Hindi is out of scope.
+
+## How it works
+
+```
+image -> DiT embedding -> 17-class probe -> calibrated type confidence -> router
+   receipt -> Qwen2.5-VL (+ LoRA adapter) -> JSON fields + token log-probabilities
+           -> per-field probability (min-token probability -> isotonic map fitted on dev)
+           -> auto-accept at or above the accept threshold (default 0.80), else review queue
+   form    -> Qwen2.5-VL (+ XFUND adapter) -> label/value pairs, all flagged for review
+   other / unsure -> review queue with the predicted type
+review queue -> corrections appended to JSONL (labels for the next calibration)
+             -> PSI drift monitor on the confidence distribution
+```
+
+### 1. Routing by document type (`src/doctype/`)
+
+DiT-base turns the page into a 768-number embedding. A 17-class logistic-regression probe (the 16 RVL-CDIP classes
+plus *receipt*) predicts the type, and an isotonic map turns its top probability into a calibrated confidence. The
+router sends receipts to the receipt extractor, forms and questionnaires to the form extractor, and everything else to
+a person; so does any prediction whose confidence is under the accept threshold (0.79, the lowest value that gave 95%
+precision on a dev set). A probe instead of a fine-tuned classifier means no GPU, training in seconds, and a new
+document family is added by embedding a few labelled examples and refitting.
+
+### 2. Extracting fields (`src/extract/vlm.py`, `src/pipeline/receipts.py`)
+
+The model gets a fixed prompt and answers with JSON. Its per-token log-probabilities are aligned back to each field's
+value, and the field's confidence is the **lowest token probability inside the value**: one doubtful character makes
+the whole field doubtful, which is how a misread digit in an amount is caught. A field the model leaves empty, or
+produces without a measurable probability, gets probability 0 and can never be auto-accepted. Dates and amounts are
+normalised (`src/utils/normalize.py`) so "05/02/2018" and "2018-02-05" count as the same value.
+
+### 3. Calibrating the confidence (`src/pipeline/calibration.py`, `src/eval/calibration.py`)
+
+Raw token probabilities are not probabilities of being right, so an isotonic regression maps them to the observed
+accuracy on a **dev set of 120 receipts that share no shop with the fine-tuning data**. The accept threshold is a
+product choice (default 0.80; the strict setting is the smallest probability that reached 99% precision on dev), and the
+test numbers in this README apply each threshold unchanged to receipts it never saw. Calibration fitted on one document family does not carry over to
+another, so refit it on your own labelled sample before relying on a threshold.
+
+### 4. Fine-tuning (`benchmarks/modal_finetune.py`)
+
+This is the main training code. It runs on a rented A100 on Modal, behind a cost guard that refuses to start a run
+whose worst-case cost exceeds your budget.
+
+| Setting | Value |
+|---|---|
+| Method | LoRA, rank 16, alpha 32, dropout 0.05, on the language model's q/k/v/o and gate/up/down projections; the vision tower is frozen |
+| Trainable parameters | 30 million of 3.8 billion (3B); 40 million of 8.3 billion (7B) |
+| Loss | answer tokens only: the prompt and image tokens are masked out |
+| Optimiser | AdamW, learning rate 1e-4, cosine decay with 5% warm-up, gradient accumulation 8, bf16, gradient checkpointing |
+| 3B receipt model | 506 SROIE receipts, 3 epochs, 52 minutes, about $2 |
+| 7B receipt model | 506 SROIE + 400 CORD receipts, 2 epochs, 58 minutes |
+| Form model | 250 XFUND forms, 2 epochs, 20 minutes (3B) |
+| Monitoring | dev loss is recorded every epoch and a checkpoint saved per epoch; dev loss was flat after the first epoch, and the final adapter is the one evaluated |
+
+`benchmarks/prep_real_split.py` makes the company-disjoint fine-tune and dev split, and `benchmarks/modal_run.py`
+runs the model for evaluation and serving. Commands: [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) section 5.
+
+### 5. Review and drift (`src/monitor/`)
+
+Fields below the threshold are queued. A reviewer's answer is appended to a JSONL log with whether the model was
+right, which is the labelled data for the next calibration. The drift monitor keeps the expected number of wrong fields
+per document, compares recent traffic with the dev-set reference using the population stability index, and reports
+`stable`, `moderate` or `large`. It needs 50 documents before it says anything.
+
+Design decisions and the evidence behind each: [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Run it
 
 ```bash
-# 1. Clone and install
-git clone https://github.com/your-username/multilingual-doc-intel.git
-cd multilingual-doc-intel
-pip install -r requirements.txt
+python -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt                          # or requirements-lock.txt for the exact tested versions
+pytest -q                                                # 113 tests, about 10 seconds, no GPU or network
 
-# Install system dependencies (Linux/WSL)
-sudo apt-get install tesseract-ocr tesseract-ocr-hin poppler-utils
-
-# 2. Download fallback models (HuggingFace — no API key needed)
-python scripts/download_pretrained.py
-
-# 3. Generate training data
-python scripts/generate_synthetic_data.py --ner_samples 5000 --cls_samples 2000
-
-# 4. Fine-tune models (GPU recommended; CPU works but slow)
-python scripts/train_ner.py
-python scripts/train_classifier.py
-
-# 5. Launch the app
-streamlit run app.py
+streamlit run app.py                                     # demo with recorded real examples; needs no GPU
 ```
 
-> **Windows users**: See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for Tesseract and Poppler installation.
-> **No GPU?** Use [Google Colab](https://colab.research.google.com/) for steps 3–4 (free GPU), then run step 5 locally.
-
----
-
-## Usage
-
-### Streamlit Web Interface
+The fine-tuned models run on [Modal](https://modal.com) (a GPU, billed per second). To use the live service:
 
 ```bash
-streamlit run app.py
+modal token new
+modal run benchmarks/modal_run.py --suite fetch          # cache the base weights (CPU container)
+modal deploy benchmarks/modal_run.py                     # app "docintel-vlm"
+# the LoRA adapters are trained into the Modal volume docintel-models (see docs/DEPLOYMENT.md); they are not in this repository
+
+DOCINTEL_VLM_APP=docintel-vlm python scripts/demo_receipt.py path/to/receipt.jpg
+
+DOCINTEL_VLM_APP=docintel-vlm uvicorn "src.api.app:create_app" --factory --port 8000
+curl -F "file=@receipt.jpg" localhost:8000/receipt       # fields, probabilities, review flags
+curl localhost:8000/review/queue                         # what a human has to check
+curl localhost:8000/monitor                              # drift of the confidence distribution, review statistics
 ```
 
-Open [http://localhost:8501](http://localhost:8501) in your browser.
-
-1. **Drag and drop** your document (PDF/PNG/JPG/TIFF)
-2. Click **Process Document**
-3. View extracted entities, document category, and language breakdown
-4. **Export** results as JSON / CSV / Excel
-
-### Python API
-
-```python
-from src.pipeline.document_pipeline import DocumentPipeline
-
-pipeline = DocumentPipeline()
-pipeline.initialize()
-
-# Process a file
-result = pipeline.process(file_path="invoice.pdf")
-
-# Access results
-print(result["classification"]["category"])        # "invoice"
-print(result["entities_by_type"]["AMOUNT"])         # [{"value": "₹50,000", ...}]
-print(result["language"]["primary"])                # "english"
-print(result["ocr_confidence"])                     # 94.5
-
-# Export
-json_str   = pipeline.export_json(result)
-csv_str    = pipeline.export_csv(result)
-xlsx_bytes = pipeline.export_excel(result)
-```
-
-### Processing bytes (for web/API integration)
-
-```python
-with open("document.pdf", "rb") as f:
-    result = pipeline.process(file_bytes=f.read(), file_type="pdf")
-```
-
----
-
-## Performance
-
-### Accuracy Breakdown
-
-| Component | Accuracy | How Measured |
-|-----------|----------|-------------|
-| OCR (raw Tesseract) | ~80% char accuracy | On 300 DPI scans without preprocessing |
-| OCR (with preprocessing) | **~96% char accuracy** | +16% from 5-step OpenCV pipeline |
-| NER (fine-tuned XLM-R + regex) | **~93.3% F1** | seqeval entity-level on held-out test set |
-| Classification (fine-tuned XLM-R) | **~92.9% F1** | macro F1 on held-out test set |
-| **End-to-end extraction** | **92%+** | evaluate_pipeline.py on test documents |
-
-### Definition of "92%+ Accuracy"
-
-```
-Extraction Accuracy = Correctly extracted fields / Total expected fields × 100
-
-A "field" = any entity (PERSON, AMOUNT, DATE, etc.) or the document category.
-"Correct" = predicted value matches ground truth with >80% character overlap.
-
-Conditions: 300 DPI+ scans, machine-printed text (Hindi + English + mixed).
-Drops to 85-90% on low-quality scans (< 200 DPI).
-```
-
-Verify the claim yourself:
-```bash
-python scripts/evaluate_pipeline.py --test_dir tests/eval_docs/
-```
-
-### Why It Works
-
-1. **Image preprocessing adds +16% OCR accuracy** (the single biggest improvement):
-   - Deskew: even 2° skew costs 5–10% accuracy
-   - Adaptive threshold: handles uneven scanner lighting
-   - Small noise kernel (3): removes noise without smearing Devanagari matras
-
-2. **XLM-RoBERTa over mBERT**: 3–5% better on Hindi NER tasks (trained on more diverse multilingual data)
-
-3. **Hybrid NER (model + regex)**: model catches context-dependent entities (PERSON, ORG, LOCATION); regex catches pattern-based ones (AMOUNT, ID, PHONE, EMAIL). Together: 93%+ F1 vs 89% model-only.
-
-4. **Synthetic data** ensures all 8 entity types have enough training examples (especially AMOUNT, ID_NUMBER, PHONE, EMAIL which public datasets lack).
-
----
-
-## Tech Stack
-
-| Component | Technology | Version |
-|-----------|-----------|---------|
-| Language | Python | 3.9+ |
-| OCR Engine | Tesseract OCR | 5.x |
-| OCR Wrapper | pytesseract | 0.3.10+ |
-| Image Preprocessing | OpenCV (headless) | 4.8+ |
-| Image Handling | Pillow | 10.0+ |
-| PDF to Image | pdf2image + Poppler | 1.16+ |
-| NER + Classification | XLM-RoBERTa-base (fine-tuned) | via HuggingFace |
-| NLP Framework | transformers + accelerate | 4.36+ |
-| Training | HuggingFace Trainer | — |
-| Evaluation | seqeval, evaluate | — |
-| Language Detection | langdetect | 1.0.9+ |
-| Synthetic Data | Faker (hi_IN, en_IN) | 20.0+ |
-| Data Processing | pandas, numpy | — |
-| Excel Export | openpyxl | 3.1+ |
-| Frontend | Streamlit | 1.29+ |
-| Testing | pytest | 7.4+ |
-
----
-
-## Project Structure
-
-```
-multilingual-doc-intel/
-├── app.py                          # Streamlit application (entry point)
-├── requirements.txt
-├── setup.py
-├── Dockerfile
-├── configs/
-│   └── pipeline_config.yaml        # All configurable parameters
-├── src/
-│   ├── ocr/
-│   │   ├── engine.py               # Tesseract OCR wrapper
-│   │   ├── preprocessor.py         # 5-step OpenCV preprocessing
-│   │   └── language_detect.py      # Unicode + langdetect
-│   ├── ner/
-│   │   ├── model.py                # XLM-RoBERTa NER inference
-│   │   ├── postprocessor.py        # Regex extraction + entity merge
-│   │   └── entities.py             # Entity type definitions
-│   ├── classifier/
-│   │   └── model.py                # XLM-RoBERTa classification
-│   ├── pipeline/
-│   │   └── document_pipeline.py    # End-to-end orchestrator
-│   └── utils/
-│       ├── config.py               # YAML config loader
-│       └── export.py               # JSON/CSV/Excel export
-├── scripts/
-│   ├── generate_synthetic_data.py  # Create training data
-│   ├── train_ner.py                # Fine-tune NER model
-│   ├── train_classifier.py         # Fine-tune classifier
-│   ├── evaluate_pipeline.py        # Prove 92%+ accuracy
-│   └── download_pretrained.py      # Download fallback models
-├── models/
-│   ├── ner/                        # Fine-tuned NER model (after training)
-│   └── classifier/                 # Fine-tuned classifier (after training)
-├── data/
-│   └── processed/                  # Generated training data
-├── tests/                          # pytest test suite
-└── docs/
-    ├── DATA_COLLECTION.md
-    ├── FINE_TUNING.md
-    └── DEPLOYMENT.md
-```
-
----
-
-## Configuration
-
-All parameters live in [configs/pipeline_config.yaml](configs/pipeline_config.yaml).
-
-Key settings:
-
-```yaml
-# After fine-tuning, set these to true:
-ner:
-  use_finetuned: true
-
-classifier:
-  use_finetuned: true
-
-# Adjust confidence threshold (0.0–1.0):
-ner:
-  confidence_threshold: 0.70
-```
-
----
-
-## Testing
+**Document-type routing** (`POST /document`) runs DiT on CPU and needs two more packages:
 
 ```bash
-# Fast tests (no model loading)
-pytest tests/ -v -m "not slow"
-
-# All tests including model inference
-pytest tests/ -v
-
-# With coverage
-pytest tests/ --cov=src --cov-report=html
+pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements-doctype.txt
+DOCINTEL_DOCTYPE=1 DOCINTEL_VLM_APP=docintel-vlm uvicorn "src.api.app:create_app" --factory --port 8000
+curl -F "file=@some_document.png" localhost:8000/document   # type, route, and fields if an extractor supports it
 ```
 
----
+**Your GPU, your bill.** The Modal app has no public URL: only your own Modal credentials can call it, and anyone who clones this repo uses their own account. The service in front of it is protected too: without `DOCINTEL_API_KEY` it only answers the machine it runs on (a proxy header does not bypass this), with the key set every call needs `X-API-Key`, and `DOCINTEL_MAX_GPU_CALLS_PER_DAY` (default 200) caps GPU calls. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) section 6 before hosting anything publicly.
+
+Without `DOCINTEL_VLM_APP` the service still starts: `/receipt` answers 503 and the review and monitor endpoints work. Details in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+
+**Reproduce the experiments** (about $6 to $7 of GPU time for the receipt models, the multilingual pilot about $2 more; each Modal script refuses to start if its worst-case cost exceeds `DOCINTEL_BUDGET_USD` and writes a spend ledger). The commands are in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) section 5; the document-type stage runs on CPU.
+
+## API reference
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /document` | any document image: classify its type, route it, extract if an extractor supports the type, otherwise queue it for a person |
+| `POST /receipt` | a receipt image straight to the receipt extractor |
+| `GET /review/queue` | documents with fields waiting for a human |
+| `POST /review/{doc_id}/{field}` | a reviewer sends the right value `{"value": "...", "reviewer": "asha"}` |
+| `GET /monitor` | drift level and review statistics |
+| `GET /health` | which backends are configured (the only open endpoint) |
+
+An abridged response from `POST /document` for a receipt from the SROIE test set:
+
+```json
+{
+  "doc_type": "receipt", "type_confidence": 1.0, "route": "receipt", "needs_review": true, "doc_id": "5bc16dc14de2",
+  "result": {
+    "doc_type": "scanned_receipt",
+    "fields": {
+      "company": {"value": "SIN LIANHAP SDN BHD", "probability": 0.992, "status": "auto"},
+      "date":    {"value": "05/02/2018", "normalized": "2018-02-05", "probability": 0.992, "status": "auto"},
+      "address": {"value": "LOT 13, JALAN IPOH, KG BATU 30 , ULU YAM LAMA 44300 ...", "probability": 0.783, "status": "review"},
+      "total":   {"value": "7.30", "probability": 0.992, "status": "auto"}
+    },
+    "review_fields": ["address"], "expected_errors": 0.24, "seconds": 4.4
+  }
+}
+```
+
+Errors: `401` no key (or not the local machine), `413` file over 50 MB, `415` not an image, `422` unreadable image or a model
+failure, `429` the daily GPU-call cap is used up, `503` a backend is not configured. Interactive docs are at `/docs`
+when the service is running.
+
+## Datasets
+
+All public; none is committed (the scripts download them, see [data/README.md](data/README.md)).
+
+| Dataset | What it is | Used for |
+|---|---|---|
+| **SROIE** (ICDAR 2019) | 626 train and 361 test scanned Malaysian shop receipts, labelled company, date, address, total | fine-tuning the receipt model; the main test set; calibration (dev split) |
+| **CORD-v2** | Indonesian receipts with line items, subtotal, tax, total (100 test) | 7B fine-tuning; second test set for items and amounts |
+| **XFUND** | forms in zh, ja, es, fr, it, de, pt (250 train, 105 test) | the multilingual form pilot |
+| **RVL-CDIP** | 16 classes of scanned business documents (1,600 test, 100 per class) | the document-type probe and its evaluation |
+
+## Quick answers
+
+**How do I extract data from receipts without OCR?**
+Give the image to a vision-language model that has been fine-tuned to answer in JSON. Doc Extractor does this with Qwen2.5-VL:
+the model reads the receipt directly and returns company, date, address and total, with no separate OCR step. See [How it works](#how-it-works).
+
+**How accurate is Qwen2.5-VL at extracting receipt fields?**
+On the 361 test receipts of SROIE, zero-shot Qwen2.5-VL-7B gets 0.825 field accuracy; after LoRA fine-tuning on 506 receipts
+the 3B model gets 0.892 and the 7B 0.901. Address is the weakest field (0.71). Details and confidence intervals: [RESULTS.md](docs/RESULTS.md).
+
+**How do I get a confidence score for a vision-language model's extraction?**
+Take the model's token log-probabilities, use the lowest probability inside each field's value as the raw score, and fit an isotonic
+regression on a held-out set so the score means "probability this field is correct". For the fine-tuned 7B this cut the expected
+calibration error from 0.039 to 0.016. See [Calibrating the confidence](#3-calibrating-the-confidence-srcpipelinecalibrationpy-srcevalcalibrationpy).
+
+**How do I fine-tune Qwen2.5-VL on my own receipts or documents?**
+The training code is [benchmarks/modal_finetune.py](benchmarks/modal_finetune.py): LoRA (rank 16) on the language model, loss on the
+answer tokens only. Fine-tuning the 3B model on 506 receipts took 52 minutes on one A100, about $2. The settings are in
+[Fine-tuning](#4-fine-tuning-benchmarksmodal_finetunepy).
+
+**Can I build a human-in-the-loop review workflow around it?**
+Yes, that is built in: fields below the accept threshold go to a review queue (`GET /review/queue`), each correction is stored as a
+labelled example (`POST /review/{doc}/{field}`), and a drift monitor tells you when incoming documents change.
+
+**How much does it cost per page?**
+About $1.23 per 1,000 pages for the 3B model and $1.64 for the 7B at Modal list prices for an A10 GPU (measured seconds per page times
+the price). The document-type classifier runs on CPU.
+
+**Can it extract invoices, bank statements or ID cards?**
+Not as validated extractors. Documents of those types are classified and sent to a person; the only extractors here have been
+measured on receipts (SROIE, CORD) and, as a preliminary pilot, forms (XFUND).
+
+**Does it work for languages other than English?**
+The receipt results are on Malaysian receipts with English text (SROIE) and Indonesian receipts (CORD). A pilot on forms in Chinese, Japanese, Spanish, French, Italian, German
+and Portuguese (XFUND) improved pair F1 from 0.362 to 0.438, which is clear in Chinese, Japanese and German only. Hindi is out of scope.
+
+**Can I run it without a GPU?**
+The demo with recorded real examples and the document-type classifier need no GPU. Live field extraction runs on a rented GPU
+through [Modal](https://modal.com); see [Run it](#run-it).
+
+**Is this an OCR library like Tesseract, EasyOCR or PaddleOCR?**
+No. It does not return text boxes. It returns the specific fields you ask for (and their confidence) straight from the image, which is
+what you usually want from receipt OCR or invoice data extraction.
+
+## Limitations
+
+- **Scope.** Receipts are the one document family with a validated extractor (SROIE: Malaysian, English text; CORD: Indonesian). Forms in seven languages are a small pilot. Invoices, letters and the other RVL-CDIP types are classified and sent to a person. **Hindi is out of scope.**
+- **Accuracy is not high enough to run unattended.** The best system gets about 0.90 field accuracy, addresses 0.71, and about two receipts in three have every field right. It is a review-assist tool: at the default threshold 13% of fields go to a human and about 1 in 27 of the rest is wrong; at the strict setting 42% go to a human.
+- **A wrong document type is the risky failure.** 11% of forms in the test set were sent to the receipt extractor, which would return confident-looking fields for a document that is not a receipt. The type classifier was evaluated on old scans plus two modern datasets, not on phone photos.
+- **One seed per fine-tune, and small test sets.** 361 SROIE and 100 CORD test receipts; CORD intervals are wide. The 7B saw CORD training data and the 3B did not. Unseen-shop splits are by exact company name. SROIE labels contain typos, which caps measurable accuracy, and 11 of the 361 test receipts are re-scans of training receipts (removing them changes scores by about 0.003). The Qwen2.5-VL pretraining data is not public, so I cannot rule out that it saw SROIE or CORD; this affects the zero-shot baselines and the fine-tuned models alike.
+- **Calibration does not transfer between document types.** Refit the threshold on a labelled sample of your own documents before relying on it.
+- **Cost figures are estimates**: Modal list prices times measured seconds. The A100 container was reported as the 80 GB variant while priced at the 40 GB rate, so training cost may be understated by up to about 19%. Total GPU spend for the project is about $16 to $17 by the ledger estimate.
+- **The service is a reference deployment**: one shared API key (no per-user accounts), a per-process daily cap on GPU calls, no multi-user storage; the GPU model runs on demand on Modal and a cold start takes about a minute; the review store is a single-process file.
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `src/doctype/` | DiT embedder, 17-class probe, router, service |
+| `src/pipeline/` | receipt extraction with calibrated review, form extraction, isotonic calibration |
+| `src/extract/vlm.py` | prompts, JSON parsing and per-field confidence for the VLM |
+| `src/api/` | FastAPI service (`app.py`), where the models run (`backends.py`), upload validation (`images.py`) |
+| `src/monitor/` | review store, drift monitor |
+| `src/utils/` | value normalisation shared by training, scoring and the service; access guard and GPU-call cap |
+| `src/eval/` | metrics (field accuracy, CORD, XFUND, calibration) |
+| `app.py` | Streamlit demo |
+| `benchmarks/` | one script per experiment: fetching, fine-tuning, evaluation, analysis, tables, figures ([index](benchmarks/README.md)) |
+| `configs/` | dev-fitted calibration files and the document-type probe |
+| `results/` | raw JSON for every reported number, figures |
+| `tests/` | the 113 tests |
+| `docs/` | [RESULTS.md](docs/RESULTS.md), [DEPLOYMENT.md](docs/DEPLOYMENT.md), [ROADMAP.md](docs/ROADMAP.md); [ARCHITECTURE.md](ARCHITECTURE.md) |
+
+## Development
+
+```bash
+make install      # runtime + test dependencies and ruff
+make test         # 113 tests, no GPU, no network
+make lint         # ruff check + ruff format --check (the same as CI)
+make demo         # Streamlit on localhost
+```
+
+Code style is enforced by ruff (`pyproject.toml`); CI runs lint, the tests and a Docker build. The prompts in `src/extract/vlm.py` are pinned by a test: the fine-tuned adapters were trained on them, so changing one means retraining.
 
 ## License
 
-MIT License — see [LICENSE](LICENSE)
-
----
-
-## Acknowledgements
-
-- [HuggingFace Transformers](https://huggingface.co/transformers/) — model infrastructure
-- [Davlan/xlm-roberta-base-ner-hrl](https://huggingface.co/Davlan/xlm-roberta-base-ner-hrl) — NER fallback model
-- [WikiANN](https://huggingface.co/datasets/wikiann) — Hindi NER training data
-- [CoNLL-2003](https://huggingface.co/datasets/conll2003) — English NER training data
-- [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) — OCR engine
+MIT

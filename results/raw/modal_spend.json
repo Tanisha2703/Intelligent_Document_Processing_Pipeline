@@ -1,0 +1,380 @@
+[
+ {
+  "when": "2026-10-27 10:32:27",
+  "suite": "fetch",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "none (cpu)",
+  "wall_seconds": 65,
+  "est_cost_usd": 0.0029
+ },
+ {
+  "when": "2026-10-27 10:34:24",
+  "suite": "smoke",
+  "split": "dev",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 2,
+  "wall_seconds": 55,
+  "model_load_seconds": 9,
+  "est_cost_usd": 0.045,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-10-27 10:56:16",
+  "suite": "train/smoke",
+  "gpu": "L4",
+  "wall_seconds": 578,
+  "est_cost_usd": 0.198,
+  "runs": [
+   "smoke"
+  ]
+ },
+ {
+  "when": "2026-10-27 11:03:13",
+  "suite": "eval",
+  "split": "test",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 240,
+  "wall_seconds": 1337,
+  "model_load_seconds": 8,
+  "est_cost_usd": 0.55,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-10-27 11:16:56",
+  "suite": "train/smoke",
+  "gpu": "L4",
+  "wall_seconds": 1068,
+  "est_cost_usd": 0.35,
+  "runs": [
+   "smoke"
+  ]
+ },
+ {
+  "when": "2026-10-27 11:23:30",
+  "suite": "eval",
+  "split": "dev",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 240,
+  "wall_seconds": 1202,
+  "model_load_seconds": 8,
+  "est_cost_usd": 0.497,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-10-27 11:26:11",
+  "suite": "fetch",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "none (cpu)",
+  "wall_seconds": 44,
+  "est_cost_usd": 0.0019
+ },
+ {
+  "when": "2026-10-27 11:44:42",
+  "suite": "eval",
+  "split": "test",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 240,
+  "wall_seconds": 1099,
+  "model_load_seconds": 6,
+  "est_cost_usd": 0.457,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-10-27 11:47:28",
+  "suite": "train/encoders",
+  "gpu": "L4",
+  "wall_seconds": 1790,
+  "est_cost_usd": 0.573,
+  "runs": [
+   "xlmr_base_s0",
+   "xlmr_base_s1",
+   "xlmr_base_s2",
+   "mbert_s0",
+   "distil_mbert_s0",
+   "muril_s0",
+   "xlmr_large_s0"
+  ]
+ },
+ {
+  "when": "2026-10-27 12:00:17",
+  "suite": "eval",
+  "split": "dev",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 240,
+  "wall_seconds": 923,
+  "model_load_seconds": 4,
+  "est_cost_usd": 0.387,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-10-27 12:14:28",
+  "suite": "api_e2e_check",
+  "gpu": "A10",
+  "wall_seconds": 34,
+  "est_cost_usd": 0.037
+ },
+ {
+  "when": "2026-10-27 12:15:21",
+  "suite": "api_e2e_check_2",
+  "gpu": "A10",
+  "wall_seconds": 20,
+  "est_cost_usd": 0.032
+ },
+ {
+  "when": "2026-11-03 22:41:03",
+  "suite": "real",
+  "split": "sroie_test",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 3,
+  "wall_seconds": 40,
+  "model_load_seconds": 8,
+  "est_cost_usd": 0.04,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-03 23:12:04",
+  "suite": "real",
+  "split": "sroie_test",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 361,
+  "wall_seconds": 1831,
+  "model_load_seconds": 8,
+  "est_cost_usd": 0.745,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-03 23:59:50",
+  "suite": "finetune/ft3b_smoke",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "examples": 16,
+  "epochs": 1,
+  "wall_seconds": 80,
+  "est_cost_usd": 0.094
+ },
+ {
+  "when": "2026-11-04 10:17:40",
+  "suite": "finetune/ft3b (interrupted at step 30, client lost)",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "A100-40GB",
+  "wall_seconds": 900,
+  "est_cost_usd": 0.604,
+  "note": "not recorded by the run itself; wall time is an upper-bound guess (training log showed 537 s at step 30)"
+ },
+ {
+  "when": "2026-11-04 10:17:40",
+  "suite": "eval real zs7b dev (interrupted at 100/120)",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "A10",
+  "wall_seconds": 700,
+  "est_cost_usd": 0.276,
+  "note": "not recorded by the run itself; estimate"
+ },
+ {
+  "when": "2026-11-04 10:20:20",
+  "suite": "real",
+  "split": "sroie_dev",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A10G",
+  "pages": 20,
+  "wall_seconds": 146,
+  "model_load_seconds": 12,
+  "est_cost_usd": 0.081,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-04 11:10:25",
+  "suite": "finetune/ft3b",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A100-SXM4-80GB",
+  "examples": 506,
+  "epochs": 3,
+  "wall_seconds": 3152,
+  "est_cost_usd": 2.155
+ },
+ {
+  "when": "2026-11-04 11:18:09",
+  "suite": "real",
+  "split": "sroie_dev",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 120,
+  "wall_seconds": 437,
+  "model_load_seconds": 7,
+  "est_cost_usd": 0.196,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-04 11:40:12",
+  "suite": "real",
+  "split": "sroie_test",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 361,
+  "wall_seconds": 1312,
+  "model_load_seconds": 5,
+  "est_cost_usd": 0.541,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-04 11:49:26",
+  "suite": "real",
+  "split": "sroie_dev",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A10G",
+  "pages": 120,
+  "wall_seconds": 544,
+  "model_load_seconds": 6,
+  "est_cost_usd": 0.238,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-04 12:15:55",
+  "suite": "real",
+  "split": "sroie_test",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A10G",
+  "pages": 361,
+  "wall_seconds": 1578,
+  "model_load_seconds": 6,
+  "est_cost_usd": 0.645,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-04 12:17:59",
+  "suite": "finetune/ft7b_smoke",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A100-SXM4-80GB",
+  "examples": 12,
+  "epochs": 1,
+  "wall_seconds": 62,
+  "est_cost_usd": 0.082
+ },
+ {
+  "when": "2026-11-04 12:19:22",
+  "suite": "finetune/ft7b_smoke",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "examples": 12,
+  "epochs": 1,
+  "wall_seconds": 63,
+  "est_cost_usd": 0.083
+ },
+ {
+  "when": "2026-11-04 12:27:44",
+  "suite": "real",
+  "split": "cord_test",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 100,
+  "wall_seconds": 638,
+  "model_load_seconds": 9,
+  "est_cost_usd": 0.275,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-04 13:18:22",
+  "suite": "finetune/ft7b",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A100-SXM4-80GB",
+  "examples": 906,
+  "epochs": 2,
+  "wall_seconds": 3513,
+  "est_cost_usd": 2.397
+ },
+ {
+  "when": "2026-11-04 13:29:09",
+  "suite": "real",
+  "split": "cord_test",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 100,
+  "wall_seconds": 604,
+  "model_load_seconds": 10,
+  "est_cost_usd": 0.262,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-04 14:02:39",
+  "suite": "real",
+  "split": "sroie_test",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A10G",
+  "pages": 361,
+  "wall_seconds": 1998,
+  "model_load_seconds": 13,
+  "est_cost_usd": 0.811,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-04 14:33:03",
+  "suite": "real",
+  "split": "sroie_dev",
+  "model": "Qwen/Qwen2.5-VL-7B-Instruct",
+  "gpu": "NVIDIA A10G",
+  "pages": 80,
+  "wall_seconds": 394,
+  "model_load_seconds": 12,
+  "est_cost_usd": 0.179,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-04 15:56:25",
+  "suite": "finetune/ft3b_xfund (stopped after epoch 1 when the workspace was disabled)",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "A100-40GB",
+  "wall_seconds": 900,
+  "est_cost_usd": 0.604,
+  "note": "estimate; training log shows 712 s to the end of epoch 1"
+ },
+ {
+  "when": "2026-11-04 15:56:25",
+  "suite": "eval real zs3b xfund_test (stopped at 70/105 when the workspace was disabled)",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "A10",
+  "wall_seconds": 1800,
+  "est_cost_usd": 0.709,
+  "note": "estimate"
+ },
+ {
+  "when": "2026-11-04 16:24:51",
+  "suite": "real",
+  "split": "xfund_test",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A10G",
+  "pages": 35,
+  "wall_seconds": 998,
+  "model_load_seconds": 6,
+  "est_cost_usd": 0.417,
+  "price_per_second": 0.00039392
+ },
+ {
+  "when": "2026-11-04 16:27:40",
+  "suite": "finetune/ft3b_xfund",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A100-SXM4-40GB",
+  "examples": 250,
+  "epochs": 2,
+  "wall_seconds": 1168,
+  "est_cost_usd": 0.824
+ },
+ {
+  "when": "2026-11-04 17:02:54",
+  "suite": "real",
+  "split": "xfund_test",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "gpu": "NVIDIA A10",
+  "pages": 105,
+  "wall_seconds": 2103,
+  "model_load_seconds": 6,
+  "est_cost_usd": 0.852,
+  "price_per_second": 0.00039392
+ }
+]

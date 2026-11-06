@@ -1,0 +1,235 @@
+{
+ "_run": {
+  "probe": "logistic regression on 768-d DiT embeddings, 17 classes",
+  "C": 0.01,
+  "dev_accuracy": 0.9330508474576271,
+  "train_docs": 2506,
+  "dev_docs": 1180,
+  "receipt_formats_in_training": "sroie+cord",
+  "accept_threshold_for_95pct_dev_precision": 0.788235294117647
+ },
+ "rvlcdip_test": {
+  "n": 1600,
+  "per_class_n": 100,
+  "native_dit_accuracy": 0.9375,
+  "native_ci95": [
+   0.925,
+   0.949375
+  ],
+  "probe_accuracy": 0.9225,
+  "probe_ci95": [
+   0.90875,
+   0.935625
+  ],
+  "probe_predicted_receipt": 0.011875,
+  "per_class": {
+   "advertisement": {
+    "native": 0.97,
+    "probe": 0.96
+   },
+   "budget": {
+    "native": 0.92,
+    "probe": 0.89
+   },
+   "email": {
+    "native": 0.98,
+    "probe": 0.98
+   },
+   "file folder": {
+    "native": 0.95,
+    "probe": 0.9
+   },
+   "form": {
+    "native": 0.86,
+    "probe": 0.8
+   },
+   "handwritten": {
+    "native": 0.99,
+    "probe": 0.99
+   },
+   "invoice": {
+    "native": 0.91,
+    "probe": 0.88
+   },
+   "letter": {
+    "native": 0.94,
+    "probe": 0.93
+   },
+   "memo": {
+    "native": 0.95,
+    "probe": 0.95
+   },
+   "news article": {
+    "native": 0.95,
+    "probe": 0.95
+   },
+   "presentation": {
+    "native": 0.91,
+    "probe": 0.89
+   },
+   "questionnaire": {
+    "native": 0.88,
+    "probe": 0.89
+   },
+   "resume": {
+    "native": 0.97,
+    "probe": 0.97
+   },
+   "scientific publication": {
+    "native": 0.94,
+    "probe": 0.93
+   },
+   "scientific report": {
+    "native": 0.92,
+    "probe": 0.91
+   },
+   "specification": {
+    "native": 0.96,
+    "probe": 0.94
+   }
+  },
+  "top_confusions": [
+   [
+    "invoice",
+    "receipt",
+    5
+   ],
+   [
+    "budget",
+    "scientific report",
+    4
+   ],
+   [
+    "form",
+    "questionnaire",
+    4
+   ],
+   [
+    "form",
+    "receipt",
+    4
+   ],
+   [
+    "scientific publication",
+    "scientific report",
+    4
+   ],
+   [
+    "file folder",
+    "receipt",
+    3
+   ],
+   [
+    "form",
+    "advertisement",
+    3
+   ],
+   [
+    "invoice",
+    "form",
+    3
+   ]
+  ]
+ },
+ "sroie_test_receipts": {
+  "n": 361,
+  "probe_predicted_receipt": 0.9916897506925207,
+  "probe_predictions": {
+   "receipt": 358,
+   "form": 1,
+   "scientific report": 1,
+   "invoice": 1
+  },
+  "native_dit_predictions": {
+   "invoice": 217,
+   "form": 57,
+   "budget": 35,
+   "specification": 26,
+   "scientific publication": 10
+  }
+ },
+ "cord_test_receipts": {
+  "n": 100,
+  "probe_predicted_receipt": 0.98,
+  "probe_predictions": {
+   "receipt": 98,
+   "presentation": 1,
+   "advertisement": 1
+  },
+  "native_dit_predictions": {
+   "advertisement": 39,
+   "invoice": 36,
+   "budget": 13,
+   "scientific publication": 4,
+   "handwritten": 3
+  }
+ },
+ "xfund_test_forms": {
+  "n": 105,
+  "probe_predictions": {
+   "form": 68,
+   "receipt": 12,
+   "questionnaire": 8,
+   "scientific report": 6,
+   "specification": 4,
+   "memo": 2
+  },
+  "native_dit_predictions": {
+   "form": 80,
+   "questionnaire": 7,
+   "specification": 6,
+   "budget": 4,
+   "advertisement": 3,
+   "scientific report": 3
+  },
+  "routed_to_form_extractor": 0.7238095238095238,
+  "wrongly_routed_to_receipt_extractor": 0.11428571428571428
+ },
+ "calibration_on_known_labels": {
+  "n": 2061,
+  "ece_raw": 0.01049717081600966,
+  "ece_calibrated": 0.007943406891169008
+ },
+ "routing": {
+  "accept_threshold": 0.788235294117647,
+  "n": 2166,
+  "receipt": {
+   "routed": 463,
+   "precision": 0.9719222462203023,
+   "recall": 0.9761388286334056
+  },
+  "form": {
+   "routed": 231,
+   "precision": 0.9567099567099567,
+   "recall": 0.7245901639344262
+  },
+  "human": {
+   "routed": 1472,
+   "precision": 0.9402173913043478,
+   "recall": 0.9885714285714285
+  },
+  "receipts_sent_to_the_wrong_extractor": 0,
+  "by_source": {
+   "rvlcdip_test": {
+    "n": 1600,
+    "routing_correct": 0.96625,
+    "to_human": 0.8875
+   },
+   "sroie_test": {
+    "n": 361,
+    "routing_correct": 0.9750692520775623,
+    "to_human": 0.024930747922437674
+   },
+   "cord_test": {
+    "n": 100,
+    "routing_correct": 0.98,
+    "to_human": 0.02
+   },
+   "xfund_test": {
+    "n": 105,
+    "routing_correct": 0.5619047619047619,
+    "to_human": 0.3904761904761905
+   }
+  }
+ }
+}

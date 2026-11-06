@@ -1,0 +1,26 @@
+{
+ "duplicate_test_receipts": 11,
+ "test_receipts": 361,
+ "systems": {
+  "zero_shot_7b": {
+   "all": 0.824792243767313,
+   "without_duplicates": 0.8214285714285714,
+   "duplicates_only": 0.9318181818181818
+  },
+  "zero_shot_3b": {
+   "all": 0.8351800554016621,
+   "without_duplicates": 0.8314285714285714,
+   "duplicates_only": 0.9545454545454546
+  },
+  "fine_tuned_3b": {
+   "all": 0.8919667590027701,
+   "without_duplicates": 0.8892857142857142,
+   "duplicates_only": 0.9772727272727273
+  },
+  "fine_tuned_7b": {
+   "all": 0.9009695290858726,
+   "without_duplicates": 0.8985714285714286,
+   "duplicates_only": 0.9772727272727273
+  }
+ }
+}

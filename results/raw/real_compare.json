@@ -1,0 +1,1365 @@
+{
+ "_run": {
+  "test": "SROIE test split",
+  "unseen_shop_receipts": 135,
+  "price_per_second": 0.00039392
+ },
+ "systems": {
+  "zero_shot_7b": {
+   "all": {
+    "n": 361,
+    "per_field_exact": {
+     "company": 0.8033240997229917,
+     "address": 0.5706371191135734,
+     "date": 0.9390581717451524,
+     "total": 0.9861495844875346
+    },
+    "field_accuracy": 0.824792243767313,
+    "ci95": [
+     0.8033240997229917,
+     0.8455678670360111
+    ],
+    "near_exact_accuracy": 0.8746537396121884,
+    "receipts_all_fields_exact": 0.5124653739612188,
+    "seconds_per_page": 4.149793774797645
+   },
+   "seen_shops": {
+    "n": 226,
+    "per_field_exact": {
+     "company": 0.9026548672566371,
+     "address": 0.6194690265486725,
+     "date": 0.9203539823008849,
+     "total": 0.995575221238938
+    },
+    "field_accuracy": 0.8595132743362832,
+    "ci95": [
+     0.834070796460177,
+     0.8849557522123894
+    ],
+    "near_exact_accuracy": 0.8949115044247787,
+    "receipts_all_fields_exact": 0.6017699115044248,
+    "seconds_per_page": 4.161944783894362
+   },
+   "unseen_shops": {
+    "n": 135,
+    "per_field_exact": {
+     "company": 0.6370370370370371,
+     "address": 0.4888888888888889,
+     "date": 0.9703703703703703,
+     "total": 0.9703703703703703
+    },
+    "field_accuracy": 0.7666666666666667,
+    "ci95": [
+     0.7296296296296296,
+     0.8018518518518518
+    ],
+    "near_exact_accuracy": 0.8407407407407408,
+    "receipts_all_fields_exact": 0.362962962962963,
+    "seconds_per_page": 4.129452085494995
+   },
+   "usd_per_1000_pages_at_a10_price": 1.6346867637682887,
+   "calibration": {
+    "feature": "min_prob",
+    "dev_fields": 480,
+    "test_fields": 1444,
+    "test_accuracy": 0.824792243767313,
+    "ece_raw_test": 0.08763884620048175,
+    "ece_calibrated_test": 0.042895083361315096,
+    "target_precision": 0.99,
+    "accept_threshold_chosen_on_dev": 0.9891891891891892,
+    "test_auto_accepted": 0.4792243767313019,
+    "test_precision_of_accepted": 0.9884393063583815,
+    "test_errors_caught_by_review": 0.9683794466403162,
+    "map": {
+     "xs": [
+      0.262145,
+      0.598223,
+      0.608178,
+      0.685822,
+      0.687306,
+      0.8616,
+      0.86216,
+      0.873964,
+      0.875811,
+      0.904107,
+      0.904582,
+      0.946505,
+      0.946562,
+      0.982369,
+      0.982733,
+      0.992918,
+      0.992938,
+      0.999491,
+      0.999491,
+      0.999782
+     ],
+     "ys": [
+      0.25,
+      0.25,
+      0.526316,
+      0.526316,
+      0.596491,
+      0.596491,
+      0.6,
+      0.6,
+      0.68,
+      0.68,
+      0.75,
+      0.75,
+      0.807018,
+      0.807018,
+      0.891304,
+      0.891304,
+      0.989189,
+      0.989189,
+      1.0,
+      1.0
+     ]
+    },
+    "operating_points": [
+     {
+      "threshold": 0.5,
+      "dev_auto_accepted": 0.9416666666666667,
+      "dev_precision_of_accepted": 0.8473451327433629,
+      "test_auto_accepted": 0.9300554016620498,
+      "test_precision_of_accepted": 0.8637379002233805,
+      "test_wrong_auto_accepted_per_1000_fields": 126.73130193905818,
+      "test_errors_caught_by_review": 0.2766798418972332,
+      "test_per_field": {
+       "company": {
+        "accepted": 340,
+        "wrong_accepted": 56
+       },
+       "address": {
+        "accepted": 298,
+        "wrong_accepted": 109
+       },
+       "date": {
+        "accepted": 348,
+        "wrong_accepted": 13
+       },
+       "total": {
+        "accepted": 357,
+        "wrong_accepted": 5
+       }
+      }
+     },
+     {
+      "threshold": 0.6,
+      "dev_auto_accepted": 0.7833333333333333,
+      "dev_precision_of_accepted": 0.901595744680851,
+      "test_auto_accepted": 0.7839335180055401,
+      "test_precision_of_accepted": 0.9399293286219081,
+      "test_wrong_auto_accepted_per_1000_fields": 47.091412742382275,
+      "test_errors_caught_by_review": 0.7312252964426877,
+      "test_per_field": {
+       "company": {
+        "accepted": 292,
+        "wrong_accepted": 32
+       },
+       "address": {
+        "accepted": 170,
+        "wrong_accepted": 33
+       },
+       "date": {
+        "accepted": 328,
+        "wrong_accepted": 2
+       },
+       "total": {
+        "accepted": 342,
+        "wrong_accepted": 1
+       }
+      }
+     },
+     {
+      "threshold": 0.7,
+      "dev_auto_accepted": 0.7208333333333333,
+      "dev_precision_of_accepted": 0.9219653179190751,
+      "test_auto_accepted": 0.7389196675900277,
+      "test_precision_of_accepted": 0.950328022492971,
+      "test_wrong_auto_accepted_per_1000_fields": 36.70360110803325,
+      "test_errors_caught_by_review": 0.7905138339920948,
+      "test_per_field": {
+       "company": {
+        "accepted": 279,
+        "wrong_accepted": 29
+       },
+       "address": {
+        "accepted": 132,
+        "wrong_accepted": 21
+       },
+       "date": {
+        "accepted": 322,
+        "wrong_accepted": 2
+       },
+       "total": {
+        "accepted": 334,
+        "wrong_accepted": 1
+       }
+      }
+     },
+     {
+      "threshold": 0.8,
+      "dev_auto_accepted": 0.6458333333333334,
+      "dev_precision_of_accepted": 0.9419354838709677,
+      "test_auto_accepted": 0.6759002770083102,
+      "test_precision_of_accepted": 0.9682377049180327,
+      "test_wrong_auto_accepted_per_1000_fields": 21.468144044321328,
+      "test_errors_caught_by_review": 0.8774703557312253,
+      "test_per_field": {
+       "company": {
+        "accepted": 266,
+        "wrong_accepted": 22
+       },
+       "address": {
+        "accepted": 77,
+        "wrong_accepted": 7
+       },
+       "date": {
+        "accepted": 307,
+        "wrong_accepted": 1
+       },
+       "total": {
+        "accepted": 326,
+        "wrong_accepted": 1
+       }
+      }
+     },
+     {
+      "threshold": 0.9,
+      "dev_auto_accepted": 0.43125,
+      "dev_precision_of_accepted": 0.9903381642512077,
+      "test_auto_accepted": 0.4792243767313019,
+      "test_precision_of_accepted": 0.9884393063583815,
+      "test_wrong_auto_accepted_per_1000_fields": 5.54016620498615,
+      "test_errors_caught_by_review": 0.9683794466403162,
+      "test_per_field": {
+       "company": {
+        "accepted": 157,
+        "wrong_accepted": 6
+       },
+       "address": {
+        "accepted": 0,
+        "wrong_accepted": 0
+       },
+       "date": {
+        "accepted": 280,
+        "wrong_accepted": 1
+       },
+       "total": {
+        "accepted": 255,
+        "wrong_accepted": 1
+       }
+      }
+     },
+     {
+      "threshold": 0.95,
+      "dev_auto_accepted": 0.43125,
+      "dev_precision_of_accepted": 0.9903381642512077,
+      "test_auto_accepted": 0.4792243767313019,
+      "test_precision_of_accepted": 0.9884393063583815,
+      "test_wrong_auto_accepted_per_1000_fields": 5.54016620498615,
+      "test_errors_caught_by_review": 0.9683794466403162,
+      "test_per_field": {
+       "company": {
+        "accepted": 157,
+        "wrong_accepted": 6
+       },
+       "address": {
+        "accepted": 0,
+        "wrong_accepted": 0
+       },
+       "date": {
+        "accepted": 280,
+        "wrong_accepted": 1
+       },
+       "total": {
+        "accepted": 255,
+        "wrong_accepted": 1
+       }
+      }
+     },
+     {
+      "threshold": 0.99,
+      "dev_auto_accepted": 0.04583333333333333,
+      "dev_precision_of_accepted": 1.0,
+      "test_auto_accepted": 0.04986149584487535,
+      "test_precision_of_accepted": 1.0,
+      "test_wrong_auto_accepted_per_1000_fields": 0.0,
+      "test_errors_caught_by_review": 1.0,
+      "test_per_field": {
+       "company": {
+        "accepted": 2,
+        "wrong_accepted": 0
+       },
+       "address": {
+        "accepted": 0,
+        "wrong_accepted": 0
+       },
+       "date": {
+        "accepted": 64,
+        "wrong_accepted": 0
+       },
+       "total": {
+        "accepted": 6,
+        "wrong_accepted": 0
+       }
+      }
+     }
+    ],
+    "coverage_at_precision": {
+     "0.99": 0.4328254847645429,
+     "0.98": 0.5851800554016621,
+     "0.95": 0.7389196675900277
+    }
+   }
+  },
+  "zero_shot_3b": {
+   "all": {
+    "n": 361,
+    "per_field_exact": {
+     "company": 0.8005540166204986,
+     "address": 0.6121883656509696,
+     "date": 0.9584487534626038,
+     "total": 0.9695290858725761
+    },
+    "field_accuracy": 0.8351800554016621,
+    "ci95": [
+     0.814404432132964,
+     0.8552631578947368
+    ],
+    "near_exact_accuracy": 0.8864265927977839,
+    "receipts_all_fields_exact": 0.5263157894736842,
+    "seconds_per_page": 3.8016186638882288
+   },
+   "seen_shops": {
+    "n": 226,
+    "per_field_exact": {
+     "company": 0.911504424778761,
+     "address": 0.7079646017699115,
+     "date": 0.9646017699115044,
+     "total": 0.9734513274336283
+    },
+    "field_accuracy": 0.8893805309734514,
+    "ci95": [
+     0.8672566371681416,
+     0.911504424778761
+    ],
+    "near_exact_accuracy": 0.9303097345132744,
+    "receipts_all_fields_exact": 0.6548672566371682,
+    "seconds_per_page": 3.8145221777721843
+   },
+   "unseen_shops": {
+    "n": 135,
+    "per_field_exact": {
+     "company": 0.6148148148148148,
+     "address": 0.45185185185185184,
+     "date": 0.9481481481481482,
+     "total": 0.9629629629629629
+    },
+    "field_accuracy": 0.7444444444444445,
+    "ci95": [
+     0.7074074074074074,
+     0.7814814814814814
+    ],
+    "near_exact_accuracy": 0.812962962962963,
+    "receipts_all_fields_exact": 0.3111111111111111,
+    "seconds_per_page": 3.7800172258306435
+   },
+   "usd_per_1000_pages_at_a10_price": 1.4975336240788513,
+   "paired_vs_zero_shot_7b": {
+    "all": {
+     "diff": 0.01038781163434903,
+     "ci95": [
+      -0.00554016620498615,
+      0.025623268698060944
+     ],
+     "n": 361
+    },
+    "unseen_shops": {
+     "diff": -0.022222222222222223,
+     "ci95": [
+      -0.046296296296296294,
+      0.001851851851851852
+     ],
+     "n": 135
+    }
+   },
+   "calibration": {
+    "feature": "min_prob",
+    "dev_fields": 480,
+    "test_fields": 1444,
+    "test_accuracy": 0.8351800554016621,
+    "ece_raw_test": 0.03528100212544812,
+    "ece_calibrated_test": 0.05772462088649231,
+    "target_precision": 0.99,
+    "accept_threshold_chosen_on_dev": 0.9876543209876543,
+    "test_auto_accepted": 0.3829639889196676,
+    "test_precision_of_accepted": 0.9909584086799277,
+    "test_errors_caught_by_review": 0.9789915966386554,
+    "map": {
+     "xs": [
+      0.0,
+      0.280415,
+      0.316949,
+      0.481721,
+      0.485014,
+      0.50854,
+      0.509276,
+      0.587512,
+      0.58756,
+      0.649245,
+      0.649403,
+      0.787988,
+      0.792254,
+      0.917771,
+      0.918523,
+      0.938873,
+      0.941297,
+      0.943908,
+      0.943961,
+      0.962705,
+      0.962764,
+      0.976314,
+      0.977087,
+      0.982842,
+      0.983425,
+      0.994157,
+      0.99417,
+      0.999349
+     ],
+     "ys": [
+      0.0,
+      0.0,
+      0.111111,
+      0.111111,
+      0.230769,
+      0.230769,
+      0.393939,
+      0.393939,
+      0.4375,
+      0.4375,
+      0.618182,
+      0.618182,
+      0.642857,
+      0.642857,
+      0.714286,
+      0.714286,
+      0.8,
+      0.8,
+      0.911765,
+      0.911765,
+      0.925926,
+      0.925926,
+      0.9375,
+      0.9375,
+      0.987654,
+      0.987654,
+      1.0,
+      1.0
+     ]
+    },
+    "operating_points": [
+     {
+      "threshold": 0.5,
+      "dev_auto_accepted": 0.8479166666666667,
+      "dev_precision_of_accepted": 0.8525798525798526,
+      "test_auto_accepted": 0.8621883656509696,
+      "test_precision_of_accepted": 0.9020080321285141,
+      "test_wrong_auto_accepted_per_1000_fields": 84.48753462603878,
+      "test_errors_caught_by_review": 0.48739495798319327,
+      "test_per_field": {
+       "company": {
+        "accepted": 330,
+        "wrong_accepted": 55
+       },
+       "address": {
+        "accepted": 235,
+        "wrong_accepted": 53
+       },
+       "date": {
+        "accepted": 340,
+        "wrong_accepted": 7
+       },
+       "total": {
+        "accepted": 340,
+        "wrong_accepted": 7
+       }
+      }
+     },
+     {
+      "threshold": 0.6,
+      "dev_auto_accepted": 0.8479166666666667,
+      "dev_precision_of_accepted": 0.8525798525798526,
+      "test_auto_accepted": 0.8621883656509696,
+      "test_precision_of_accepted": 0.9020080321285141,
+      "test_wrong_auto_accepted_per_1000_fields": 84.48753462603878,
+      "test_errors_caught_by_review": 0.48739495798319327,
+      "test_per_field": {
+       "company": {
+        "accepted": 330,
+        "wrong_accepted": 55
+       },
+       "address": {
+        "accepted": 235,
+        "wrong_accepted": 53
+       },
+       "date": {
+        "accepted": 340,
+        "wrong_accepted": 7
+       },
+       "total": {
+        "accepted": 340,
+        "wrong_accepted": 7
+       }
+      }
+     },
+     {
+      "threshold": 0.7,
+      "dev_auto_accepted": 0.5875,
+      "dev_precision_of_accepted": 0.950354609929078,
+      "test_auto_accepted": 0.5789473684210527,
+      "test_precision_of_accepted": 0.9784688995215312,
+      "test_wrong_auto_accepted_per_1000_fields": 12.465373961218837,
+      "test_errors_caught_by_review": 0.9243697478991597,
+      "test_per_field": {
+       "company": {
+        "accepted": 242,
+        "wrong_accepted": 14
+       },
+       "address": {
+        "accepted": 28,
+        "wrong_accepted": 2
+       },
+       "date": {
+        "accepted": 295,
+        "wrong_accepted": 1
+       },
+       "total": {
+        "accepted": 271,
+        "wrong_accepted": 1
+       }
+      }
+     },
+     {
+      "threshold": 0.8,
+      "dev_auto_accepted": 0.54375,
+      "dev_precision_of_accepted": 0.9693486590038314,
+      "test_auto_accepted": 0.5367036011080333,
+      "test_precision_of_accepted": 0.983225806451613,
+      "test_wrong_auto_accepted_per_1000_fields": 9.002770083102494,
+      "test_errors_caught_by_review": 0.9453781512605042,
+      "test_per_field": {
+       "company": {
+        "accepted": 228,
+        "wrong_accepted": 11
+       },
+       "address": {
+        "accepted": 6,
+        "wrong_accepted": 0
+       },
+       "date": {
+        "accepted": 291,
+        "wrong_accepted": 1
+       },
+       "total": {
+        "accepted": 250,
+        "wrong_accepted": 1
+       }
+      }
+     },
+     {
+      "threshold": 0.9,
+      "dev_auto_accepted": 0.5333333333333333,
+      "dev_precision_of_accepted": 0.97265625,
+      "test_auto_accepted": 0.5339335180055401,
+      "test_precision_of_accepted": 0.9831387808041504,
+      "test_wrong_auto_accepted_per_1000_fields": 9.002770083102494,
+      "test_errors_caught_by_review": 0.9453781512605042,
+      "test_per_field": {
+       "company": {
+        "accepted": 225,
+        "wrong_accepted": 11
+       },
+       "address": {
+        "accepted": 6,
+        "wrong_accepted": 0
+       },
+       "date": {
+        "accepted": 290,
+        "wrong_accepted": 1
+       },
+       "total": {
+        "accepted": 250,
+        "wrong_accepted": 1
+       }
+      }
+     },
+     {
+      "threshold": 0.95,
+      "dev_auto_accepted": 0.3729166666666667,
+      "dev_precision_of_accepted": 0.994413407821229,
+      "test_auto_accepted": 0.3843490304709141,
+      "test_precision_of_accepted": 0.990990990990991,
+      "test_wrong_auto_accepted_per_1000_fields": 3.4626038781163433,
+      "test_errors_caught_by_review": 0.9789915966386554,
+      "test_per_field": {
+       "company": {
+        "accepted": 133,
+        "wrong_accepted": 4
+       },
+       "address": {
+        "accepted": 0,
+        "wrong_accepted": 0
+       },
+       "date": {
+        "accepted": 241,
+        "wrong_accepted": 0
+       },
+       "total": {
+        "accepted": 181,
+        "wrong_accepted": 1
+       }
+      }
+     },
+     {
+      "threshold": 0.99,
+      "dev_auto_accepted": 0.20416666666666666,
+      "dev_precision_of_accepted": 1.0,
+      "test_auto_accepted": 0.19806094182825484,
+      "test_precision_of_accepted": 0.9965034965034965,
+      "test_wrong_auto_accepted_per_1000_fields": 0.6925207756232687,
+      "test_errors_caught_by_review": 0.9957983193277311,
+      "test_per_field": {
+       "company": {
+        "accepted": 56,
+        "wrong_accepted": 1
+       },
+       "address": {
+        "accepted": 0,
+        "wrong_accepted": 0
+       },
+       "date": {
+        "accepted": 146,
+        "wrong_accepted": 0
+       },
+       "total": {
+        "accepted": 84,
+        "wrong_accepted": 0
+       }
+      }
+     }
+    ],
+    "coverage_at_precision": {
+     "0.99": 0.4439058171745152,
+     "0.98": 0.5727146814404432,
+     "0.95": 0.6987534626038782
+    }
+   }
+  },
+  "fine_tuned_3b": {
+   "all": {
+    "n": 361,
+    "per_field_exact": {
+     "company": 0.9085872576177285,
+     "address": 0.7063711911357341,
+     "date": 0.9695290858725761,
+     "total": 0.9833795013850416
+    },
+    "field_accuracy": 0.8919667590027701,
+    "ci95": [
+     0.8760387811634349,
+     0.9078947368421053
+    ],
+    "near_exact_accuracy": 0.9556786703601108,
+    "receipts_all_fields_exact": 0.6343490304709142,
+    "seconds_per_page": 3.123561076510316
+   },
+   "seen_shops": {
+    "n": 226,
+    "per_field_exact": {
+     "company": 0.9911504424778761,
+     "address": 0.7699115044247787,
+     "date": 0.9690265486725663,
+     "total": 1.0
+    },
+    "field_accuracy": 0.9325221238938053,
+    "ci95": [
+     0.9170353982300885,
+     0.9469026548672567
+    ],
+    "near_exact_accuracy": 0.9789823008849557,
+    "receipts_all_fields_exact": 0.7389380530973452,
+    "seconds_per_page": 3.134496245763998
+   },
+   "unseen_shops": {
+    "n": 135,
+    "per_field_exact": {
+     "company": 0.7703703703703704,
+     "address": 0.6,
+     "date": 0.9703703703703703,
+     "total": 0.9555555555555556
+    },
+    "field_accuracy": 0.8240740740740741,
+    "ci95": [
+     0.7925925925925926,
+     0.8537037037037037
+    ],
+    "near_exact_accuracy": 0.9166666666666666,
+    "receipts_all_fields_exact": 0.45925925925925926,
+    "seconds_per_page": 3.105254793167114
+   },
+   "usd_per_1000_pages_at_a10_price": 1.2304331792589438,
+   "paired_vs_zero_shot_7b": {
+    "all": {
+     "diff": 0.06717451523545706,
+     "ci95": [
+      0.04847645429362881,
+      0.08587257617728532
+     ],
+     "n": 361
+    },
+    "unseen_shops": {
+     "diff": 0.05740740740740741,
+     "ci95": [
+      0.027777777777777776,
+      0.08703703703703704
+     ],
+     "n": 135
+    }
+   },
+   "calibration": {
+    "feature": "min_prob",
+    "dev_fields": 480,
+    "test_fields": 1444,
+    "test_accuracy": 0.8919667590027701,
+    "ece_raw_test": 0.03940508692063496,
+    "ece_calibrated_test": 0.02151932879895868,
+    "target_precision": 0.99,
+    "accept_threshold_chosen_on_dev": 0.990909090909091,
+    "test_auto_accepted": 0.38573407202216065,
+    "test_precision_of_accepted": 0.9946140035906643,
+    "test_errors_caught_by_review": 0.9807692307692307,
+    "map": {
+     "xs": [
+      0.172079,
+      0.455332,
+      0.480803,
+      0.522091,
+      0.524496,
+      0.807597,
+      0.808045,
+      0.889879,
+      0.889983,
+      0.916133,
+      0.919703,
+      0.958666,
+      0.959378,
+      0.994011,
+      0.99406,
+      0.998046,
+      0.998081,
+      0.999876,
+      0.999879,
+      0.999978
+     ],
+     "ys": [
+      0.0,
+      0.0,
+      0.428571,
+      0.428571,
+      0.592593,
+      0.592593,
+      0.75,
+      0.75,
+      0.8,
+      0.8,
+      0.844444,
+      0.844444,
+      0.919192,
+      0.919192,
+      0.955224,
+      0.955224,
+      0.990909,
+      0.990909,
+      1.0,
+      1.0
+     ]
+    },
+    "operating_points": [
+     {
+      "threshold": 0.5,
+      "dev_auto_accepted": 0.9729166666666667,
+      "dev_precision_of_accepted": 0.8865096359743041,
+      "test_auto_accepted": 0.9681440443213296,
+      "test_precision_of_accepted": 0.9155937052932761,
+      "test_wrong_auto_accepted_per_1000_fields": 81.7174515235457,
+      "test_errors_caught_by_review": 0.24358974358974358,
+      "test_per_field": {
+       "company": {
+        "accepted": 348,
+        "wrong_accepted": 25
+       },
+       "address": {
+        "accepted": 332,
+        "wrong_accepted": 78
+       },
+       "date": {
+        "accepted": 359,
+        "wrong_accepted": 10
+       },
+       "total": {
+        "accepted": 359,
+        "wrong_accepted": 5
+       }
+      }
+     },
+     {
+      "threshold": 0.6,
+      "dev_auto_accepted": 0.8604166666666667,
+      "dev_precision_of_accepted": 0.9249394673123487,
+      "test_auto_accepted": 0.868421052631579,
+      "test_precision_of_accepted": 0.9513556618819776,
+      "test_wrong_auto_accepted_per_1000_fields": 42.24376731301939,
+      "test_errors_caught_by_review": 0.6089743589743589,
+      "test_per_field": {
+       "company": {
+        "accepted": 321,
+        "wrong_accepted": 15
+       },
+       "address": {
+        "accepted": 243,
+        "wrong_accepted": 35
+       },
+       "date": {
+        "accepted": 353,
+        "wrong_accepted": 7
+       },
+       "total": {
+        "accepted": 337,
+        "wrong_accepted": 4
+       }
+      }
+     },
+     {
+      "threshold": 0.7,
+      "dev_auto_accepted": 0.8604166666666667,
+      "dev_precision_of_accepted": 0.9249394673123487,
+      "test_auto_accepted": 0.868421052631579,
+      "test_precision_of_accepted": 0.9513556618819776,
+      "test_wrong_auto_accepted_per_1000_fields": 42.24376731301939,
+      "test_errors_caught_by_review": 0.6089743589743589,
+      "test_per_field": {
+       "company": {
+        "accepted": 321,
+        "wrong_accepted": 15
+       },
+       "address": {
+        "accepted": 243,
+        "wrong_accepted": 35
+       },
+       "date": {
+        "accepted": 353,
+        "wrong_accepted": 7
+       },
+       "total": {
+        "accepted": 337,
+        "wrong_accepted": 4
+       }
+      }
+     },
+     {
+      "threshold": 0.8,
+      "dev_auto_accepted": 0.79375,
+      "dev_precision_of_accepted": 0.9396325459317585,
+      "test_auto_accepted": 0.8157894736842105,
+      "test_precision_of_accepted": 0.967741935483871,
+      "test_wrong_auto_accepted_per_1000_fields": 26.31578947368421,
+      "test_errors_caught_by_review": 0.7564102564102564,
+      "test_per_field": {
+       "company": {
+        "accepted": 309,
+        "wrong_accepted": 11
+       },
+       "address": {
+        "accepted": 190,
+        "wrong_accepted": 19
+       },
+       "date": {
+        "accepted": 347,
+        "wrong_accepted": 4
+       },
+       "total": {
+        "accepted": 332,
+        "wrong_accepted": 4
+       }
+      }
+     },
+     {
+      "threshold": 0.9,
+      "dev_auto_accepted": 0.6583333333333333,
+      "dev_precision_of_accepted": 0.9620253164556962,
+      "test_auto_accepted": 0.7278393351800554,
+      "test_precision_of_accepted": 0.978116079923882,
+      "test_wrong_auto_accepted_per_1000_fields": 15.927977839335181,
+      "test_errors_caught_by_review": 0.8525641025641025,
+      "test_per_field": {
+       "company": {
+        "accepted": 275,
+        "wrong_accepted": 6
+       },
+       "address": {
+        "accepted": 126,
+        "wrong_accepted": 12
+       },
+       "date": {
+        "accepted": 334,
+        "wrong_accepted": 1
+       },
+       "total": {
+        "accepted": 316,
+        "wrong_accepted": 4
+       }
+      }
+     },
+     {
+      "threshold": 0.95,
+      "dev_auto_accepted": 0.45208333333333334,
+      "dev_precision_of_accepted": 0.9815668202764977,
+      "test_auto_accepted": 0.5110803324099723,
+      "test_precision_of_accepted": 0.991869918699187,
+      "test_wrong_auto_accepted_per_1000_fields": 4.1551246537396125,
+      "test_errors_caught_by_review": 0.9615384615384616,
+      "test_per_field": {
+       "company": {
+        "accepted": 182,
+        "wrong_accepted": 2
+       },
+       "address": {
+        "accepted": 9,
+        "wrong_accepted": 2
+       },
+       "date": {
+        "accepted": 290,
+        "wrong_accepted": 0
+       },
+       "total": {
+        "accepted": 257,
+        "wrong_accepted": 2
+       }
+      }
+     },
+     {
+      "threshold": 0.99,
+      "dev_auto_accepted": 0.3125,
+      "dev_precision_of_accepted": 0.9933333333333333,
+      "test_auto_accepted": 0.38573407202216065,
+      "test_precision_of_accepted": 0.9946140035906643,
+      "test_wrong_auto_accepted_per_1000_fields": 2.0775623268698062,
+      "test_errors_caught_by_review": 0.9807692307692307,
+      "test_per_field": {
+       "company": {
+        "accepted": 112,
+        "wrong_accepted": 1
+       },
+       "address": {
+        "accepted": 0,
+        "wrong_accepted": 0
+       },
+       "date": {
+        "accepted": 247,
+        "wrong_accepted": 0
+       },
+       "total": {
+        "accepted": 198,
+        "wrong_accepted": 2
+       }
+      }
+     }
+    ],
+    "coverage_at_precision": {
+     "0.99": 0.5173130193905817,
+     "0.98": 0.6613573407202216,
+     "0.95": 0.8691135734072022
+    }
+   },
+   "paired_vs_same_size_zero_shot": {
+    "all": {
+     "diff": 0.05678670360110803,
+     "ci95": [
+      0.04224376731301939,
+      0.07202216066481995
+     ],
+     "n": 361
+    },
+    "unseen_shops": {
+     "diff": 0.07962962962962963,
+     "ci95": [
+      0.05185185185185185,
+      0.10740740740740741
+     ],
+     "n": 135
+    }
+   }
+  },
+  "fine_tuned_7b": {
+   "all": {
+    "n": 361,
+    "per_field_exact": {
+     "company": 0.9224376731301939,
+     "address": 0.7146814404432132,
+     "date": 0.9778393351800554,
+     "total": 0.9889196675900277
+    },
+    "field_accuracy": 0.9009695290858726,
+    "ci95": [
+     0.8857340720221607,
+     0.9155124653739612
+    ],
+    "near_exact_accuracy": 0.9646814404432132,
+    "receipts_all_fields_exact": 0.6537396121883656,
+    "seconds_per_page": 4.169117026051656
+   },
+   "seen_shops": {
+    "n": 226,
+    "per_field_exact": {
+     "company": 0.9867256637168141,
+     "address": 0.7787610619469026,
+     "date": 0.9823008849557522,
+     "total": 0.995575221238938
+    },
+    "field_accuracy": 0.9358407079646017,
+    "ci95": [
+     0.9203539823008849,
+     0.9502212389380531
+    ],
+    "near_exact_accuracy": 0.9834070796460177,
+    "receipts_all_fields_exact": 0.7522123893805309,
+    "seconds_per_page": 4.180246881679096
+   },
+   "unseen_shops": {
+    "n": 135,
+    "per_field_exact": {
+     "company": 0.8148148148148148,
+     "address": 0.6074074074074074,
+     "date": 0.9703703703703703,
+     "total": 0.9777777777777777
+    },
+    "field_accuracy": 0.8425925925925926,
+    "ci95": [
+     0.812962962962963,
+     0.8722222222222222
+    ],
+    "near_exact_accuracy": 0.9333333333333333,
+    "receipts_all_fields_exact": 0.4888888888888889,
+    "seconds_per_page": 4.150484823297571
+   },
+   "usd_per_1000_pages_at_a10_price": 1.6422985789022684,
+   "paired_vs_zero_shot_7b": {
+    "all": {
+     "diff": 0.07617728531855955,
+     "ci95": [
+      0.05886426592797784,
+      0.09349030470914127
+     ],
+     "n": 361
+    },
+    "unseen_shops": {
+     "diff": 0.07592592592592592,
+     "ci95": [
+      0.04814814814814815,
+      0.10555555555555556
+     ],
+     "n": 135
+    }
+   },
+   "calibration": {
+    "feature": "min_prob",
+    "dev_fields": 480,
+    "test_fields": 1444,
+    "test_accuracy": 0.9009695290858726,
+    "ece_raw_test": 0.0390009078917823,
+    "ece_calibrated_test": 0.016438850382297223,
+    "target_precision": 0.99,
+    "accept_threshold_chosen_on_dev": 0.9922779922779923,
+    "test_auto_accepted": 0.5817174515235457,
+    "test_precision_of_accepted": 0.9916666666666667,
+    "test_errors_caught_by_review": 0.951048951048951,
+    "map": {
+     "xs": [
+      0.343409,
+      0.500099,
+      0.520203,
+      0.554897,
+      0.556727,
+      0.687401,
+      0.700187,
+      0.746357,
+      0.747987,
+      0.835294,
+      0.835802,
+      0.918229,
+      0.922621,
+      0.956095,
+      0.956557,
+      0.974856,
+      0.975536,
+      0.99,
+      0.990731,
+      0.999771,
+      0.999772,
+      0.99985
+     ],
+     "ys": [
+      0.0,
+      0.0,
+      0.25,
+      0.25,
+      0.5,
+      0.5,
+      0.625,
+      0.625,
+      0.782609,
+      0.782609,
+      0.837838,
+      0.837838,
+      0.884615,
+      0.884615,
+      0.892857,
+      0.892857,
+      0.928571,
+      0.928571,
+      0.992278,
+      0.992278,
+      1.0,
+      1.0
+     ]
+    },
+    "operating_points": [
+     {
+      "threshold": 0.5,
+      "dev_auto_accepted": 0.975,
+      "dev_precision_of_accepted": 0.9188034188034188,
+      "test_auto_accepted": 0.971606648199446,
+      "test_precision_of_accepted": 0.9194583036350678,
+      "test_wrong_auto_accepted_per_1000_fields": 78.25484764542936,
+      "test_errors_caught_by_review": 0.2097902097902098,
+      "test_per_field": {
+       "company": {
+        "accepted": 350,
+        "wrong_accepted": 22
+       },
+       "address": {
+        "accepted": 335,
+        "wrong_accepted": 81
+       },
+       "date": {
+        "accepted": 358,
+        "wrong_accepted": 6
+       },
+       "total": {
+        "accepted": 360,
+        "wrong_accepted": 4
+       }
+      }
+     },
+     {
+      "threshold": 0.6,
+      "dev_auto_accepted": 0.925,
+      "dev_precision_of_accepted": 0.9414414414414415,
+      "test_auto_accepted": 0.9362880886426593,
+      "test_precision_of_accepted": 0.9363905325443787,
+      "test_wrong_auto_accepted_per_1000_fields": 59.556786703601105,
+      "test_errors_caught_by_review": 0.3986013986013986,
+      "test_per_field": {
+       "company": {
+        "accepted": 340,
+        "wrong_accepted": 18
+       },
+       "address": {
+        "accepted": 301,
+        "wrong_accepted": 59
+       },
+       "date": {
+        "accepted": 358,
+        "wrong_accepted": 6
+       },
+       "total": {
+        "accepted": 353,
+        "wrong_accepted": 3
+       }
+      }
+     },
+     {
+      "threshold": 0.7,
+      "dev_auto_accepted": 0.9083333333333333,
+      "dev_precision_of_accepted": 0.9472477064220184,
+      "test_auto_accepted": 0.9078947368421053,
+      "test_precision_of_accepted": 0.9481311975591151,
+      "test_wrong_auto_accepted_per_1000_fields": 47.091412742382275,
+      "test_errors_caught_by_review": 0.5244755244755245,
+      "test_per_field": {
+       "company": {
+        "accepted": 324,
+        "wrong_accepted": 10
+       },
+       "address": {
+        "accepted": 282,
+        "wrong_accepted": 50
+       },
+       "date": {
+        "accepted": 357,
+        "wrong_accepted": 5
+       },
+       "total": {
+        "accepted": 348,
+        "wrong_accepted": 3
+       }
+      }
+     },
+     {
+      "threshold": 0.8,
+      "dev_auto_accepted": 0.8604166666666667,
+      "dev_precision_of_accepted": 0.9564164648910412,
+      "test_auto_accepted": 0.8698060941828255,
+      "test_precision_of_accepted": 0.9625796178343949,
+      "test_wrong_auto_accepted_per_1000_fields": 32.54847645429363,
+      "test_errors_caught_by_review": 0.6713286713286714,
+      "test_per_field": {
+       "company": {
+        "accepted": 311,
+        "wrong_accepted": 6
+       },
+       "address": {
+        "accepted": 250,
+        "wrong_accepted": 35
+       },
+       "date": {
+        "accepted": 352,
+        "wrong_accepted": 3
+       },
+       "total": {
+        "accepted": 343,
+        "wrong_accepted": 3
+       }
+      }
+     },
+     {
+      "threshold": 0.9,
+      "dev_auto_accepted": 0.6708333333333333,
+      "dev_precision_of_accepted": 0.9813664596273292,
+      "test_auto_accepted": 0.6945983379501385,
+      "test_precision_of_accepted": 0.9860418743768694,
+      "test_wrong_auto_accepted_per_1000_fields": 9.69529085872576,
+      "test_errors_caught_by_review": 0.9020979020979021,
+      "test_per_field": {
+       "company": {
+        "accepted": 263,
+        "wrong_accepted": 4
+       },
+       "address": {
+        "accepted": 88,
+        "wrong_accepted": 8
+       },
+       "date": {
+        "accepted": 341,
+        "wrong_accepted": 1
+       },
+       "total": {
+        "accepted": 311,
+        "wrong_accepted": 1
+       }
+      }
+     },
+     {
+      "threshold": 0.95,
+      "dev_auto_accepted": 0.5541666666666667,
+      "dev_precision_of_accepted": 0.9924812030075187,
+      "test_auto_accepted": 0.5865650969529086,
+      "test_precision_of_accepted": 0.9917355371900827,
+      "test_wrong_auto_accepted_per_1000_fields": 4.84764542936288,
+      "test_errors_caught_by_review": 0.951048951048951,
+      "test_per_field": {
+       "company": {
+        "accepted": 224,
+        "wrong_accepted": 2
+       },
+       "address": {
+        "accepted": 26,
+        "wrong_accepted": 3
+       },
+       "date": {
+        "accepted": 327,
+        "wrong_accepted": 1
+       },
+       "total": {
+        "accepted": 270,
+        "wrong_accepted": 1
+       }
+      }
+     },
+     {
+      "threshold": 0.99,
+      "dev_auto_accepted": 0.5541666666666667,
+      "dev_precision_of_accepted": 0.9924812030075187,
+      "test_auto_accepted": 0.5831024930747922,
+      "test_precision_of_accepted": 0.9916864608076009,
+      "test_wrong_auto_accepted_per_1000_fields": 4.84764542936288,
+      "test_errors_caught_by_review": 0.951048951048951,
+      "test_per_field": {
+       "company": {
+        "accepted": 223,
+        "wrong_accepted": 2
+       },
+       "address": {
+        "accepted": 23,
+        "wrong_accepted": 3
+       },
+       "date": {
+        "accepted": 327,
+        "wrong_accepted": 1
+       },
+       "total": {
+        "accepted": 269,
+        "wrong_accepted": 1
+       }
+      }
+     }
+    ],
+    "coverage_at_precision": {
+     "0.99": 0.6405817174515236,
+     "0.98": 0.7631578947368421,
+     "0.95": 0.9044321329639889
+    }
+   },
+   "paired_vs_same_size_zero_shot": {
+    "all": {
+     "diff": 0.07617728531855955,
+     "ci95": [
+      0.05886426592797784,
+      0.09349030470914127
+     ],
+     "n": 361
+    },
+    "unseen_shops": {
+     "diff": 0.07592592592592592,
+     "ci95": [
+      0.04814814814814815,
+      0.10555555555555556
+     ],
+     "n": 135
+    }
+   },
+   "paired_vs_fine_tuned_3b": {
+    "all": {
+     "diff": 0.009002770083102494,
+     "ci95": [
+      -0.002077562326869806,
+      0.02008310249307479
+     ],
+     "n": 361
+    }
+   }
+  }
+ }
+}

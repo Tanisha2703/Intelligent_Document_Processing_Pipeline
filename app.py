@@ -1,394 +1,242 @@
 """
-Multilingual Document Intelligence — Streamlit Application
+Doc Extractor demo: extract fields from a receipt, with a calibrated probability per field and a human-review queue.
 
-Drag-and-drop interface for Hindi/English document processing.
-  Upload PDF/PNG/JPG/TIFF → OCR → NER → Classification → Export
+    streamlit run app.py
 
-Entry point: streamlit run app.py
+Two ways to use it:
+  - "Recorded examples" works anywhere: real receipts with the fine-tuned model's stored output.
+  - "Upload a receipt" runs the fine-tuned model live. It needs the Modal app deployed
+    (`modal deploy benchmarks/modal_run.py`) and `DOCINTEL_VLM_APP=docintel-vlm` set; see docs/DEPLOYMENT.md.
+
+The review tab reads and writes the same JSONL store as the HTTP service (data/review/review.jsonl).
 """
+
+import csv
 import io
-import logging
-import time
+import json
+import os
 from pathlib import Path
 
 import streamlit as st
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+ROOT = Path(__file__).parent
+EXAMPLES = ROOT / "assets" / "examples"
+CONFIG = ROOT / "configs" / "receipt_calibration.json"
+STORE_PATH = Path(os.environ.get("DOCINTEL_REVIEW_PATH", ROOT / "data" / "review" / "review.jsonl"))
+GOOD, WARN = "#1baf7a", "#eb6834"
 
-# ---------------------------------------------------------------------------
-# Page config (must be first Streamlit call)
-# ---------------------------------------------------------------------------
-st.set_page_config(
-    page_title="Multilingual Document Intelligence",
-    page_icon="📄",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
-# ---------------------------------------------------------------------------
-# Custom CSS
-# ---------------------------------------------------------------------------
+st.set_page_config(page_title="Doc Extractor", page_icon="🧾", layout="wide")
 st.markdown(
     """
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
-
-    html, body, [class*="css"] {
-        font-family: 'DM Sans', sans-serif;
-    }
-
-    /* Stat box */
-    .stat-box {
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 12px;
-        padding: 16px;
-        text-align: center;
-    }
-    .stat-label {
-        font-size: 12px;
-        color: #6c757d;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-bottom: 4px;
-    }
-    .stat-value {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 22px;
-        font-weight: 600;
-        color: #212529;
-    }
-
-    /* Entity tag */
-    .entity-tag {
-        display: inline-block;
-        padding: 2px 10px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 500;
-        margin: 3px 4px 3px 0;
-        white-space: nowrap;
-    }
-
-    /* Confidence bar */
-    .conf-bar-outer {
-        background: #e9ecef;
-        border-radius: 6px;
-        height: 8px;
-        margin-top: 4px;
-    }
-    .conf-bar-inner {
-        border-radius: 6px;
-        height: 8px;
-    }
-
-    /* Card */
-    .card {
-        background: white;
-        border: 1px solid #dee2e6;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 16px;
-    }
-
-    /* Hero header */
-    .hero-title {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #1a1a2e;
-        margin-bottom: 0;
-    }
-    .hero-sub {
-        color: #6c757d;
-        font-size: 1rem;
-        margin-top: 4px;
-    }
-
-    /* Hide Streamlit default elements */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
+    .block-container {max-width: 1100px; padding-top: 2rem;}
+    .field-row {display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #e8e8e4;}
+    .field-name {width: 90px; color: #6b6a65; font-size: 13px; text-transform: uppercase; letter-spacing: .04em;}
+    .field-value {flex: 1; font-size: 15px; word-break: break-word;}
+    .chip {border-radius: 999px; padding: 2px 10px; font-size: 12px; font-weight: 600; color: white;}
+    .prob {width: 52px; text-align: right; font-variant-numeric: tabular-nums; color: #3d3c39;}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 
-# ---------------------------------------------------------------------------
-# Pipeline loader (cached — loads models once per session)
-# ---------------------------------------------------------------------------
-@st.cache_resource(show_spinner="Loading AI models...")
-def load_pipeline():
-    """Load and return the DocumentPipeline singleton."""
-    from src.pipeline.document_pipeline import DocumentPipeline
-    pipeline = DocumentPipeline()
-    pipeline.initialize()
-    return pipeline
+@st.cache_resource(show_spinner=False)
+def _store():
+    from src.monitor.review import ReviewStore
+
+    return ReviewStore(STORE_PATH)
 
 
-# ---------------------------------------------------------------------------
-# Helper: render entity section
-# ---------------------------------------------------------------------------
-def _conf_color(conf: float) -> str:
-    if conf >= 0.80:
-        return "#28a745"
-    elif conf >= 0.50:
-        return "#ffc107"
-    return "#dc3545"
+@st.cache_resource(show_spinner="Connecting to the model...")
+@st.cache_resource
+def _gpu_cap():
+    from src.utils.guard import cap_from_env
+
+    return cap_from_env()
 
 
-def render_entities(entities_by_type: dict, show_confidence: bool, threshold: float):
-    """Render entities grouped by type with colored tags."""
-    from src.ner.entities import ENTITY_COLORS, ENTITY_DISPLAY_NAMES, ENTITY_ICONS
+def _live_extractor():
+    """The Modal-backed extractor, or None when DOCINTEL_VLM_APP is not set."""
+    from src.api.backends import modal_receipts
 
-    has_any = False
-    for etype, ents in entities_by_type.items():
-        ents = [e for e in ents if e.get("confidence", 0) >= threshold]
-        if not ents:
-            continue
-        has_any = True
-        color = ENTITY_COLORS.get(etype, "#e9ecef")
-        icon = ENTITY_ICONS.get(etype, "•")
-        display_name = ENTITY_DISPLAY_NAMES.get(etype, etype)
-
-        st.markdown(f"**{icon} {display_name}** ({len(ents)})")
-        tag_html = ""
-        for ent in ents:
-            conf_pct = f" <span style='font-size:11px;color:#666'>({ent['confidence']:.0%})</span>" if show_confidence else ""
-            tag_html += (
-                f"<span class='entity-tag' style='background:{color}'>"
-                f"{ent['value']}{conf_pct}"
-                f"</span>"
-            )
-        st.markdown(tag_html, unsafe_allow_html=True)
-
-    if not has_any:
-        st.info("No entities found above confidence threshold.")
+    return modal_receipts()
 
 
-# ---------------------------------------------------------------------------
-# Helper: render confidence bar
-# ---------------------------------------------------------------------------
-def confidence_bar(value: float, label: str = "") -> str:
-    color = _conf_color(value)
-    pct = int(value * 100)
-    return (
-        f"<div>{label} <strong>{pct}%</strong></div>"
-        f"<div class='conf-bar-outer'>"
-        f"<div class='conf-bar-inner' style='width:{pct}%;background:{color}'></div>"
-        f"</div>"
-    )
+def extractor():
+    return st.session_state.get("extractor") or _live_extractor()
 
 
-# ---------------------------------------------------------------------------
-# Main app
-# ---------------------------------------------------------------------------
-def main():
-    # ---- Header ----------------------------------------------------------
-    st.markdown(
-        "<div class='hero-title'>📄 Multilingual Document Intelligence</div>"
-        "<div class='hero-sub'>Extract structured data from Hindi and English documents "
-        "using fine-tuned transformer models</div>",
-        unsafe_allow_html=True,
-    )
-    st.divider()
-
-    # ---- Sidebar ---------------------------------------------------------
-    with st.sidebar:
-        st.markdown("### ⚙️ Settings")
-        show_raw = st.checkbox("Show raw OCR text", value=True)
-        show_confidence = st.checkbox("Show confidence scores", value=True)
-        show_all_cls_scores = st.checkbox("Show all classification scores", value=False)
-        threshold = st.slider(
-            "Confidence threshold",
-            min_value=0.0,
-            max_value=1.0,
-            value=0.70,
-            step=0.05,
-            help="Entities below this confidence are hidden",
+def accept_summary() -> str:
+    """What the accept threshold did on the 361 SROIE test receipts, from the calibration config (never typed by hand)."""
+    if os.environ.get("DOCINTEL_ACCEPT_THRESHOLD"):
+        return "The accept threshold was overridden, so the measured test figures in the README do not apply."
+    try:
+        c = json.loads(CONFIG.read_text(encoding="utf-8"))
+        return (
+            f"On the 361 real SROIE test receipts this threshold accepted **{c['test_auto_accepted']:.0%}** of fields, "
+            f"and **{c['test_precision_of_accepted']:.1%}** of those were correct."
         )
-        st.divider()
-        st.markdown("### 📊 About")
-        st.markdown(
-            "**Pipeline**: OCR → NER → Classification\n\n"
-            "**Models**: XLM-RoBERTa (fine-tuned)\n\n"
-            "**Languages**: Hindi + English + Mixed\n\n"
-            "**Accuracy**: 92%+ on clean 300 DPI scans\n\n"
-            "**Export**: JSON / CSV / Excel"
+    except (OSError, KeyError, ValueError):
+        return ""
+
+
+def accept_threshold():
+    try:
+        if os.environ.get("DOCINTEL_ACCEPT_THRESHOLD"):
+            return float(os.environ["DOCINTEL_ACCEPT_THRESHOLD"])
+        return json.loads(CONFIG.read_text(encoding="utf-8"))["accept"]
+    except (OSError, KeyError, ValueError):
+        return None
+
+
+def render_fields(result: dict, truth: dict | None = None):
+    for f, v in result["fields"].items():
+        auto = v["status"] == "auto"
+        chip = (
+            f"<span class='chip' style='background:{GOOD if auto else WARN}'>{'accepted' if auto else 'review'}</span>"
         )
-
-    # ---- File uploader ---------------------------------------------------
-    uploaded_file = st.file_uploader(
-        "📤 Drag and drop your document here",
-        type=["pdf", "png", "jpg", "jpeg", "tiff", "tif"],
-        help="Supported formats: PDF, PNG, JPG, TIFF — Hindi, English, or mixed language",
-    )
-
-    process_btn = st.button("🚀 Process Document", type="primary", disabled=uploaded_file is None)
-
-    # ---- Processing ------------------------------------------------------
-    if process_btn and uploaded_file is not None:
-        file_bytes = uploaded_file.read()
-        file_type = Path(uploaded_file.name).suffix.lstrip(".").lower()
-
-        with st.spinner("Processing document — this may take 10–30 seconds..."):
-            try:
-                pipeline = load_pipeline()
-                result = pipeline.process(
-                    file_bytes=file_bytes,
-                    file_type=file_type,
-                    confidence_threshold=threshold,
-                )
-                st.session_state["result"] = result
-                st.session_state["file_name"] = uploaded_file.name
-            except Exception as exc:
-                st.error(f"Processing failed: {exc}")
-                logger.exception("Pipeline error")
-                return
-
-    # ---- Results ---------------------------------------------------------
-    result = st.session_state.get("result")
-    if result is None:
+        value = v["value"] if v["value"] else "<i>nothing found</i>"
         st.markdown(
-            "<br><br><div style='text-align:center;color:#adb5bd;font-size:1.1rem'>"
-            "Upload a document and click <b>Process Document</b> to begin."
-            "</div>",
+            f"<div class='field-row'><div class='field-name'>{f}</div><div class='field-value'>{value}</div>"
+            f"<div class='prob'>{v['probability']:.2f}</div>{chip}</div>",
             unsafe_allow_html=True,
         )
+    if result["needs_review"]:
+        st.warning(f"A person should check: {', '.join(result['review_fields'])}")
+    else:
+        st.success("Every field is above the accept threshold.")
+    if truth:
+        with st.expander("Dataset labels for this receipt (they contain typos)"):
+            st.json(truth)
+
+
+def downloads(result: dict, stem: str):
+    flat = {f: v["value"] for f, v in result["fields"].items()}
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["field", "value", "probability", "status"])
+    for f, v in result["fields"].items():
+        w.writerow([f, v["value"], f"{v['probability']:.4f}", v["status"]])
+    c1, c2 = st.columns(2)
+    c1.download_button(
+        "Download JSON",
+        json.dumps({"fields": flat, **result}, ensure_ascii=False, indent=2),
+        f"{stem}.json",
+        "application/json",
+    )
+    c2.download_button("Download CSV", buf.getvalue(), f"{stem}.csv", "text/csv")
+
+
+def extract_tab():
+    mode = st.radio("Source", ["Recorded examples", "Upload a receipt"], horizontal=True, label_visibility="collapsed")
+    if mode == "Recorded examples":
+        examples = json.loads((EXAMPLES / "examples.json").read_text(encoding="utf-8"))
+        pick = st.selectbox(
+            "Receipt", range(len(examples)), format_func=lambda i: f"Receipt {i + 1}: {examples[i]['image']}"
+        )
+        ex = examples[pick]
+        left, right = st.columns([1, 1.3])
+        left.image(str(EXAMPLES / ex["image"]), use_container_width=True)
+        with right:
+            st.caption(
+                f"Recorded output of {ex['model']}, calibrated and thresholded by the same code the service uses."
+            )
+            render_fields(ex["recorded_output"], ex["ground_truth"])
+            downloads(ex["recorded_output"], Path(ex["image"]).stem)
         return
 
-    # ---- Stats row -------------------------------------------------------
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.markdown(
-            f"<div class='stat-box'><div class='stat-label'>Processing Time</div>"
-            f"<div class='stat-value'>{result['processing_time_s']}s</div></div>",
-            unsafe_allow_html=True,
+    up = st.file_uploader("Receipt image", type=["png", "jpg", "jpeg", "tif", "tiff"])
+    ext = extractor()
+    if ext is None:
+        st.info(
+            "Live extraction needs the fine-tuned model deployed on Modal. Deploy it with `modal deploy benchmarks/modal_run.py`, "
+            "set `DOCINTEL_VLM_APP=docintel-vlm`, and restart this app. The recorded examples work without it."
         )
-    with col2:
-        st.markdown(
-            f"<div class='stat-box'><div class='stat-label'>OCR Confidence</div>"
-            f"<div class='stat-value'>{result['ocr_confidence']:.0f}%</div></div>",
-            unsafe_allow_html=True,
-        )
-    with col3:
-        lang = result["language"].get("primary", "unknown").capitalize()
-        st.markdown(
-            f"<div class='stat-box'><div class='stat-label'>Language</div>"
-            f"<div class='stat-value'>{lang}</div></div>",
-            unsafe_allow_html=True,
-        )
-    with col4:
-        st.markdown(
-            f"<div class='stat-box'><div class='stat-label'>Entities Found</div>"
-            f"<div class='stat-value'>{result['entity_count']}</div></div>",
-            unsafe_allow_html=True,
-        )
+        return
+    password = os.environ.get("DOCINTEL_DEMO_PASSWORD")
+    if password and st.text_input("Password for live extraction", type="password") != password:
+        st.caption("Live extraction spends GPU time, so it is password-protected. The recorded examples are open.")
+        return
+    if up is None:
+        return
+    if st.button("Extract fields", type="primary"):
+        from src.api.images import prepare_image
 
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # ---- Classification + Entities (2-column) ---------------------------
-    left_col, right_col = st.columns([1, 2])
-
-    with left_col:
-        st.markdown("#### 📋 Classification")
-        classification = result.get("classification", {})
-        display = classification.get("display", "❓ Unknown")
-        conf = classification.get("confidence", 0.0)
-        st.markdown(f"**Category:** {display}")
-        st.markdown(
-            confidence_bar(conf, "Confidence"),
-            unsafe_allow_html=True,
-        )
-
-        if show_all_cls_scores:
-            st.markdown("**All category scores:**")
-            all_scores = classification.get("all_scores", {})
-            for cat, score in sorted(all_scores.items(), key=lambda x: -x[1]):
-                st.markdown(
-                    f"<small>{cat}</small> {confidence_bar(score)}",
-                    unsafe_allow_html=True,
-                )
-
-        st.markdown("---")
-        st.markdown("#### 🌐 Language")
-        language = result.get("language", {})
-        hi = language.get("hindi_ratio", 0.0)
-        en = language.get("english_ratio", 0.0)
-        st.markdown(
-            f"Hindi: **{hi:.0%}** &nbsp; English: **{en:.0%}**",
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            f"<small>Pages: {result.get('page_count', 1)} | "
-            f"Threshold: {threshold:.0%}</small>",
-            unsafe_allow_html=True,
-        )
-
-    with right_col:
-        st.markdown("#### 🏷️ Extracted Entities")
-        render_entities(
-            result.get("entities_by_type", {}),
-            show_confidence=show_confidence,
-            threshold=threshold,
-        )
-
-    # ---- Raw OCR Text ----------------------------------------------------
-    if show_raw:
-        st.markdown("---")
-        st.markdown("#### 📝 Raw OCR Text")
-        ocr_text = result.get("ocr_text", "")
-        if ocr_text.strip():
-            st.text_area(
-                label="OCR output",
-                value=ocr_text,
-                height=250,
-                label_visibility="collapsed",
+        if not _gpu_cap().take():
+            st.error(
+                "The daily limit of live extractions has been reached; it resets at 00:00 UTC. The recorded examples still work."
             )
-        else:
-            st.warning("No text extracted — check document quality or Tesseract installation.")
+            return
+        with st.spinner("Reading the receipt (the first call after idle waits for a cold GPU, about a minute)..."):
+            try:
+                result = ext.extract(prepare_image(up.getvalue()))
+            except Exception as exc:
+                st.error(f"Could not process this receipt: {type(exc).__name__}: {exc}")
+                return
+        if result["needs_review"]:
+            result["doc_id"] = _store().enqueue(
+                None, result["doc_type"], {f: {**v, "source": "vlm"} for f, v in result["fields"].items()}
+            )
+        st.session_state["last"] = (up.name, result, up.getvalue())
+    last = st.session_state.get("last")
+    if last:
+        name, result, data = last
+        left, right = st.columns([1, 1.3])
+        left.image(data, use_container_width=True)
+        with right:
+            render_fields(result)
+            downloads(result, Path(name).stem)
 
-    # ---- Export ----------------------------------------------------------
-    st.markdown("---")
-    st.markdown("#### 💾 Export Results")
 
-    file_stem = Path(st.session_state.get("file_name", "document")).stem
+def review_tab():
+    store = _store()
+    stats = store.stats()
+    a, b, c = st.columns(3)
+    a.metric("Documents waiting", stats["pending_docs"])
+    b.metric("Fields resolved", stats["resolved_fields"])
+    c.metric(
+        "Model was right",
+        f"{stats['model_was_right']} of {stats['resolved_fields']}" if stats["resolved_fields"] else "n/a",
+    )
+    pending = store.pending()
+    if not pending:
+        st.info("Nothing to review. Fields the model is unsure about, from live extractions, appear here.")
+        return
+    for doc in pending:
+        st.markdown(f"**Document {doc['doc_id']}**")
+        for f, v in doc["fields"].items():
+            col1, col2, _ = st.columns([3, 1, 1])
+            new = col1.text_input(
+                f"{f} (model confidence {v['probability']:.2f})", value=v["value"] or "", key=f"v-{doc['doc_id']}-{f}"
+            )
+            if col2.button("Save", key=f"s-{doc['doc_id']}-{f}"):
+                store.resolve(doc["doc_id"], f, new or None, "streamlit")
+                st.rerun()
 
-    exp_col1, exp_col2, exp_col3 = st.columns(3)
 
-    with exp_col1:
-        from src.utils.export import to_json
-        json_str = to_json(result)
-        st.download_button(
-            label="⬇️ JSON",
-            data=json_str.encode("utf-8"),
-            file_name=f"{file_stem}_result.json",
-            mime="application/json",
+def main():
+    st.markdown("## Doc Extractor")
+    st.caption(
+        "Receipt fields with a calibrated probability each. A fine-tuned Qwen2.5-VL reads the receipt; "
+        "fields it is unsure about go to a person."
+    )
+    with st.sidebar:
+        st.markdown("### How to read this")
+        thr = accept_threshold()
+        st.markdown(
+            "Each field has a probability that it is correct. Fields at or above the accept threshold"
+            + (f" (**{thr:.2f}**)" if thr else "")
+            + " are accepted automatically; the rest wait for review."
         )
-
-    with exp_col2:
-        from src.utils.export import to_csv
-        csv_str = to_csv(result)
-        st.download_button(
-            label="⬇️ CSV",
-            data=csv_str.encode("utf-8"),
-            file_name=f"{file_stem}_entities.csv",
-            mime="text/csv",
+        st.markdown(
+            accept_summary() + " Addresses are the weakest field. See the README for the full results and limits."
         )
-
-    with exp_col3:
-        from src.utils.export import to_excel_bytes
-        excel_bytes = to_excel_bytes(result)
-        st.download_button(
-            label="⬇️ Excel",
-            data=excel_bytes,
-            file_name=f"{file_stem}_result.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
+    tab1, tab2 = st.tabs(["Extract", "Review queue"])
+    with tab1:
+        extract_tab()
+    with tab2:
+        review_tab()
 
 
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
-if __name__ == "__main__":
-    main()
+main()

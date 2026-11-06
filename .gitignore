@@ -1,105 +1,47 @@
-# ============================================================
-# .gitignore — Multilingual Document Intelligence Pipeline
-# ============================================================
-
-# --- Python ---
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# --- Virtual environments ---
-.env
-.venv
-env/
+build/
+dist/
+.venv/
 venv/
-ENV/
-project2/
-
-# --- Environment variables ---
-.env
-.env.local
-.env.*.local
-
-# --- Models (large binary files — download or train locally) ---
-models/ner/*.bin
-models/ner/*.safetensors
-models/ner/config.json
-models/ner/tokenizer*
-models/ner/vocab*
-models/ner/sentencepiece*
-models/ner/special_tokens_map.json
-models/classifier/*.bin
-models/classifier/*.safetensors
-models/classifier/config.json
-models/classifier/tokenizer*
-models/classifier/vocab*
-models/classifier/sentencepiece*
-models/classifier/special_tokens_map.json
-# Keep .gitkeep files
-!models/ner/.gitkeep
-!models/classifier/.gitkeep
-CLAUDE(5).md
-
-# --- Training data (generated locally) ---
-data/processed/*.conll
-data/processed/*.csv
-data/processed/*.jsonl
-data/raw/*
-data/synthetic/*
-# Keep .gitkeep files
-!data/raw/.gitkeep
-!data/processed/.gitkeep
-!data/synthetic/.gitkeep
-
-# --- IDE ---
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
-Thumbs.db
-
-# --- Jupyter ---
-.ipynb_checkpoints/
-*.ipynb
-
-# --- Claude Code ---
-CLAUDE.md
-CLAUDE*.md
-
-# --- Testing ---
 .pytest_cache/
 .coverage
 htmlcov/
-*.coveragerc
 
-# --- Logs ---
-*.log
-logs/
-wandb/
-runs/
-outputs/
+# Secrets and local settings
+.env
+.env.*
+!.env.example
 
-# --- Streamlit ---
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+.ipynb_checkpoints/
+
+# Tooling
+CLAUDE.md
+CLAUDE*.md
 .streamlit/
-
-# --- HuggingFace cache ---
 .cache/
+logs/
+*.log
+
+# Model weights (the LoRA adapters live on the Modal volume docintel-models, not in the repository)
+models/
+*.safetensors
+*.pt
+*.bin
+
+# Data: downloaded by benchmarks/fetch_*.py, or written by the service at runtime (see data/README.md)
+data/*
+!data/README.md
+
+# Regenerable intermediates (the raw results that back every number stay tracked)
+results/raw/*.cache.jsonl
+results/raw/volget_*.log
+results/raw/*_probe.json
+.ruff_cache/

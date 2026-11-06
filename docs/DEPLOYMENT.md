@@ -1,264 +1,119 @@
-# Deployment Guide
+# Deployment
 
-## 1. Local Development Setup
+What exists: a Streamlit demo, a FastAPI service, a CPU container image, and Modal scripts that train and serve the fine-tuned model on a rented GPU. What does not: per-user accounts, multi-user storage, autoscaling. Treat this as a reference deployment, not a hardened one.
 
-### Linux / WSL2
+## 1. The model on Modal (GPU)
 
-```bash
-# System dependencies
-sudo apt-get update
-sudo apt-get install -y \
-    tesseract-ocr \
-    tesseract-ocr-hin \
-    tesseract-ocr-eng \
-    poppler-utils \
-    libglib2.0-0 libsm6 libxext6 libxrender-dev libgl1
-
-# Python environment
-python -m venv .venv
-source .venv/bin/activate
-pip install --upgrade pip
-pip install -r requirements.txt
-
-# Verify
-python scripts/download_pretrained.py
-
-# Run
-streamlit run app.py
-```
-
-### Windows (Native)
-
-1. **Tesseract OCR**:
-   - Download installer from: https://github.com/UB-Mannheim/tesseract/wiki
-   - During install, check "Additional language data" → select Hindi
-   - Note the install path (e.g., `C:\Program Files\Tesseract-OCR\`)
-   - Add to PATH: System Properties → Environment Variables → PATH → add above path
-
-2. **Poppler**:
-   - Download from: https://github.com/oschwartz10612/poppler-windows/releases
-   - Extract to `C:\poppler\`
-   - Add to PATH: add `C:\poppler\bin`
-
-3. **Set `.env` file**:
-   ```
-   TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
-   POPPLER_PATH=C:\poppler\bin
-   ```
-
-4. **Install Python dependencies**:
-   ```cmd
-   python -m venv .venv
-   .venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-
-5. **Run**:
-   ```cmd
-   streamlit run app.py
-   ```
-
-### macOS
+The fine-tuned model is a LoRA adapter on Qwen2.5-VL, saved on the Modal volume `docintel-models` (`ft3b`, `ft7b`). The base weights are cached on `docintel-hf-cache`.
 
 ```bash
-brew install tesseract tesseract-lang poppler
-pip install -r requirements.txt
-streamlit run app.py
+pip install -r requirements.txt                      # includes the modal client
+modal token new                                      # or set MODAL_TOKEN_ID / MODAL_TOKEN_SECRET
+modal run benchmarks/modal_run.py --suite fetch      # download the base weights on a CPU container (GPU billing starts later)
+modal deploy benchmarks/modal_run.py                 # app "docintel-vlm"; the class takes the adapter name as a parameter
 ```
 
----
+**Redeploy after pulling changes.** The deployed app is a snapshot of `benchmarks/modal_run.py`: an old deployment does not know newer document types (the form route fails with `KeyError: 'xfund_form'`). On Windows, set `PYTHONUTF8=1` for `modal deploy`, or the CLI crashes printing its check mark.
 
-## 2. Docker Deployment
+`configs/receipt_calibration.json` names the model and adapter the service calls (`ft7b` by default; `receipt_calibration_ft3b.json` is the cheaper alternative) and holds the calibration map and accept threshold fitted on dev receipts. A cold GPU container adds about a minute to the first request. Settings: `DOCINTEL_GPU` (default A10G), `DOCINTEL_MAX_PIXELS` (the image budget, 1.4 MP, which sets image tokens and therefore time), `DOCINTEL_BUDGET_USD`.
 
-### Build and Run
+**Cost guard.** Every Modal script estimates its worst-case cost before launching and refuses to start if that exceeds the budget left after the ledger (`results/raw/modal_spend.json`). Estimates use Modal list prices and measured seconds; check the price table in `benchmarks/modal_common.py` before relying on it.
+
+## 2. Streamlit demo
 
 ```bash
-# Build
-docker build -t doc-intel .
-
-# Run
-docker run -p 8501:8501 doc-intel
-
-# With GPU support (NVIDIA)
-docker run --gpus all -p 8501:8501 doc-intel
-
-# With volume for persistent model storage
-docker run -p 8501:8501 -v $(pwd)/models:/app/models doc-intel
+streamlit run app.py          # http://localhost:8501
 ```
 
-### docker-compose.yml
+"Recorded examples" works with no GPU (two real receipts and the model's stored output). "Upload a receipt" needs `DOCINTEL_VLM_APP=docintel-vlm` and the deployed app. The review tab shares `data/review/review.jsonl` with the HTTP service (override with `DOCINTEL_REVIEW_PATH`).
 
-```yaml
-version: "3.9"
-
-services:
-  doc-intel:
-    build: .
-    ports:
-      - "8501:8501"
-    volumes:
-      - ./models:/app/models
-      - ./data:/app/data
-    environment:
-      - LOG_LEVEL=INFO
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-```
+## 3. HTTP service
 
 ```bash
-docker-compose up -d
-docker-compose logs -f
+DOCINTEL_VLM_APP=docintel-vlm uvicorn "src.api.app:create_app" --factory --host 0.0.0.0 --port 8000
+curl -F file=@receipt.jpg localhost:8000/receipt
+curl localhost:8000/review/queue
+curl -X POST localhost:8000/review/<doc_id>/company -H 'content-type: application/json' -d '{"value": "ABC SDN BHD", "reviewer": "asha"}'
+curl localhost:8000/monitor
 ```
 
----
+| Endpoint | Purpose |
+|---|---|
+| `POST /receipt` | upload a receipt image (PNG, JPG, TIFF; limit 50 MB); returns each field's value, normalised value, calibrated probability and `auto` / `review` status; uncertain fields are queued |
+| `POST /document` | any document image: classify the type (DiT, CPU), route it, extract if an extractor supports the type, otherwise queue it for a person. Needs `DOCINTEL_DOCTYPE=1` and `requirements-doctype.txt` |
+| `GET /review/queue`, `POST /review/{doc}/{field}` | the review queue; every resolution is appended to `data/review/review.jsonl` with whether the model was right |
+| `GET /monitor` | PSI of the confidence distribution against the reference, review statistics |
+| `GET /health` | whether a VLM and the document-type model are configured |
 
-## 3. Cloud Deployment
+A processing error returns 422, not 500; an unsupported suffix returns 415 before anything is read; without `DOCINTEL_VLM_APP`, `/receipt` returns 503; without `DOCINTEL_DOCTYPE=1`, `/document` returns 503.
 
-### Option A: Streamlit Community Cloud (Free)
-
-Best for demos and small-scale use.
-
-**Limitations**: No GPU, limited RAM (1GB), no Tesseract on path by default.
-
-**Workaround for Tesseract**:
-Create `packages.txt` in repo root:
-```
-tesseract-ocr
-tesseract-ocr-hin
-poppler-utils
-```
-Streamlit Cloud reads this and installs system packages automatically.
-
-**Steps**:
-1. Push code to GitHub (public repo)
-2. Go to https://share.streamlit.io → Deploy an app
-3. Set repo, branch (`main`), and main file (`app.py`)
-4. Deploy
-
-**Note**: Models are too large for Streamlit Cloud's free tier. Use `use_finetuned: false` in config (falls back to zero-shot which downloads at runtime).
-
-### Option B: AWS EC2
+## 4. Container (CPU)
 
 ```bash
-# Launch t3.large (8GB RAM) or g4dn.xlarge (GPU, 16GB RAM)
-# AMI: Ubuntu 22.04 LTS
-
-# Connect
-ssh -i your-key.pem ubuntu@<ec2-ip>
-
-# Install Docker
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker ubuntu
-
-# Clone and run
-git clone https://github.com/your-username/multilingual-doc-intel.git
-cd multilingual-doc-intel
-docker build -t doc-intel .
-docker run -d -p 80:8501 doc-intel
-
-# For GPU (g4dn instances):
-# Install NVIDIA Container Toolkit first
-docker run --gpus all -d -p 80:8501 doc-intel
+docker build -t docintel .            # or: podman build -t docintel .
+docker run --rm -p 8501:8501 -e DOCINTEL_VLM_APP=docintel-vlm -e MODAL_TOKEN_ID=... -e MODAL_TOKEN_SECRET=... docintel
 ```
 
-Open `http://<ec2-ip>` in browser.
+The image serves the Streamlit demo with the exact versions in `requirements-lock.txt`; it has no OCR engine, no torch and no model weights (the GPU model runs on Modal, and the document-type classifier is a separate optional install). Without a Modal token the demo shows the recorded examples only. The Dockerfile was written for this slimmer project; build it once in CI before relying on it.
 
-### Option C: HuggingFace Spaces (Free GPU Available)
+## 5. Reproducing the training and evaluation
 
-1. Create a Space at https://huggingface.co/spaces
-2. Select Streamlit SDK
-3. Upload your code (or link GitHub repo)
-4. Add `packages.txt` with `tesseract-ocr tesseract-ocr-hin poppler-utils`
-5. Enable GPU (T4 Small) if available
-
----
-
-## 4. Performance Optimization Tips
-
-### For CPU Deployments
-
-```yaml
-# In configs/pipeline_config.yaml:
-pipeline:
-  parallel_ner_classifier: false  # Disable parallel for single-core
-
-ner:
-  max_chunk_length: 500           # Smaller chunks = faster per chunk
-```
-
-```python
-# In app.py, load models with 4 threads:
-import torch
-torch.set_num_threads(4)
-```
-
-### For GPU Deployments
-
-```python
-# In src/ner/model.py and src/classifier/model.py,
-# change device=-1 to device=0:
-self._pipeline = hf_pipeline(..., device=0)
-```
-
-Or set via environment:
 ```bash
-CUDA_VISIBLE_DEVICES=0 streamlit run app.py
+python benchmarks/fetch_real.py test && python benchmarks/fetch_real.py train      # SROIE
+python benchmarks/fetch_cord.py test train                                        # CORD (falls back to parquet shards if the rows API errors)
+python benchmarks/prep_real_split.py                                              # fine-tune / dev / unseen-shop split
+modal volume put docintel-data data/real/sroie_ft /sroie_ft
+modal volume put docintel-data data/real/sroie_dev /sroie_dev
+export DOCINTEL_BUDGET_USD=18
+DOCINTEL_FT_MODEL=Qwen/Qwen2.5-VL-3B-Instruct modal run --detach benchmarks/modal_finetune.py --tag ft3b --epochs 3
+modal run benchmarks/modal_run.py --suite real --data data/real/sroie_test --tag real_ft3b_sroie_test --adapter ft3b
+python benchmarks/analyze_real.py --out results/raw/real_compare.json
+python benchmarks/write_receipt_config.py                                         # calibration files for the service
+python benchmarks/make_tables.py && python benchmarks/make_figures.py             # RESULTS.md tables and README figures
 ```
 
-### Caching Pretrained Models
+The 7B run (SROIE plus 400 CORD receipts) is the same with `DOCINTEL_FT_MODEL=Qwen/Qwen2.5-VL-7B-Instruct`, `--sets "sroie_ft,cord_train"`, `--epochs 2`; see RESULTS.md section 2.
 
-HuggingFace downloads models to `~/.cache/huggingface/hub/` by default.
+**XFUND multilingual pilot** (RESULTS.md section 4):
 
-For Docker, mount the cache:
 ```bash
-docker run -v ~/.cache/huggingface:/root/.cache/huggingface -p 8501:8501 doc-intel
+python benchmarks/fetch_xfund.py                                  # 40 train + 15 test forms per language
+modal volume put docintel-data data/real/xfund_train /xfund_train && modal volume put docintel-data data/real/xfund_dev /xfund_dev
+DOCINTEL_FT_MODEL=Qwen/Qwen2.5-VL-3B-Instruct DOCINTEL_FT_TIMEOUT=4000 modal run --detach benchmarks/modal_finetune.py \
+    --tag ft3b_xfund --epochs 2 --n-train 250 --per-example-s 8 --sets xfund_train --dev-sets xfund_dev
+DOCINTEL_MODEL=Qwen/Qwen2.5-VL-3B-Instruct modal run benchmarks/modal_run.py --suite real --chunk 10 --per-item-s 40 \
+    --data data/real/xfund_test --tag real_zs3b_xfund_test
+DOCINTEL_MODEL=Qwen/Qwen2.5-VL-3B-Instruct modal run benchmarks/modal_run.py --suite real --chunk 10 --per-item-s 40 \
+    --data data/real/xfund_test --tag real_ft3b_xfund_xfund_test --adapter ft3b_xfund
+python benchmarks/analyze_xfund.py --out results/raw/xfund_compare.json
 ```
 
----
+**Document-type stage** (CPU only, no Modal): fetch RVL-CDIP, embed with DiT, fit and evaluate the probe.
 
-## 5. Security Considerations
-
-- **File uploads**: validate type and size (already enforced in `app.py`)
-- **No external API calls**: all processing is local
-- **No data persistence**: results are in-memory only; cleared on session end
-- **Tesseract temp files**: auto-cleaned by pytesseract
-- **Reverse proxy**: put nginx in front of Streamlit for production; set `server.headless = true`
-
-### Nginx Config (for production)
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location / {
-        proxy_pass http://localhost:8501;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-}
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements-doctype.txt
+python benchmarks/fetch_rvlcdip.py                                                # 100 test + 100 train + 60 dev per class, about 2 GB per split read
+python benchmarks/embed_doctype.py sroie_ft sroie_dev sroie_test cord_train cord_validation cord_test xfund_train xfund_test     rvlcdip_train rvlcdip_dev rvlcdip_test                                        # about 30 minutes on a laptop CPU, resumable
+python benchmarks/analyze_doctype.py --receipts sroie --out results/raw/doctype_compare_sroie_only.json
+python benchmarks/analyze_doctype.py --receipts sroie+cord --write-config --out results/raw/doctype_compare.json   # also writes configs/doctype*.{json,npz}
 ```
 
-### Streamlit Config for Production
+## 6. Keeping strangers off your GPU
 
-Create `.streamlit/config.toml`:
-```toml
-[server]
-headless = true
-port = 8501
-address = "0.0.0.0"
-maxUploadSize = 50  # MB
+The Modal app (`docintel-vlm`) has no public endpoint: it can only be called with credentials from your Modal workspace. The risk is the service you put in front of it, because every upload to `/receipt` or `/document` is a GPU call on your account. Three guards are built in:
 
-[browser]
-gatherUsageStats = false
+| Guard | Setting | Behaviour |
+|---|---|---|
+| API key | `DOCINTEL_API_KEY` | every endpoint except `/health` needs `X-API-Key: <key>`; 401 otherwise |
+| Local-only default | (no key set) | only a client on the same machine is answered; a request carrying `X-Forwarded-For` is refused even from localhost, so a reverse proxy cannot silently open the service |
+| Daily GPU cap | `DOCINTEL_MAX_GPU_CALLS_PER_DAY` (default 200) | the 201st call of the UTC day gets 429; per process, resets on restart |
+| Container cap | `DOCINTEL_MAX_CONTAINERS` (default 3, applied at `modal deploy`) | Modal cannot start more GPU containers than this at once |
+| Demo password | `DOCINTEL_DEMO_PASSWORD` | the Streamlit live-upload tab asks for it (recorded examples stay open); the same daily cap applies |
 
-[logger]
-level = "info"
-```
+Also: bind the Streamlit demo to the local machine unless you mean to share it (`streamlit run app.py --server.address 127.0.0.1`; its default is every interface), keep your Modal token out of the repository (`.env` and `~/.modal.toml` are not tracked), and set a spend limit in the Modal dashboard as the backstop. Not built: per-user accounts, a shared counter across several service processes.
+
+## 7. Before putting anything real through it
+
+- The measurements are on public receipts and old scanned documents. Build a small labelled set of your own documents (the review queue produces one as a side effect), re-run the analysis on it and **refit the calibration and the document-type probe**: calibration fitted on a different document family auto-accepted 89% of real fields at 89% precision instead of 99%, and a receipt format the probe had not seen was recognised 70% of the time.
+- Add authentication and a persistent store behind the API; `ReviewStore` is an append-only file for one process.
+- Decide the accept threshold from what a wrong field costs you. The default (`DOCINTEL_ACCEPT_THRESHOLD` unset, calibration config 0.80) sends 13% of fields to a person and lets about 1 in 27 accepted fields through wrong; `0.95` is the strict setting (42% to a person, 99.2% precision). The measured trade-off is in RESULTS.md section 2.3.

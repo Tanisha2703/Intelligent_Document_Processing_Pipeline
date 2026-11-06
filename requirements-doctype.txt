@@ -1,0 +1,6 @@
+# Optional: the document-type classifier (DiT on CPU) behind POST /document and `benchmarks/embed_doctype.py`.
+# Install the CPU build of torch first so pip does not pull ~2 GB of CUDA libraries:
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install -r requirements-doctype.txt
+# Tested with torch 2.14.1 and transformers 5.20.2.
+transformers>=4.40

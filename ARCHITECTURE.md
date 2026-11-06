@@ -1,258 +1,55 @@
-# Architecture — Multilingual Document Intelligence Pipeline
-
-## Design Philosophy
-
-Three guiding principles:
-
-1. **Staged processing** — each stage has a single responsibility and produces a well-defined output. This makes each stage independently testable and swappable.
-
-2. **Fail-soft** — if NER fails, regex-only results are returned. If classification fails, "unknown" is returned. The user always gets partial results rather than an error.
-
-3. **Independently testable** — every module can be imported and exercised without standing up the full pipeline. This is why `DocumentPipeline.initialize()` is explicit rather than happening in `__init__`.
-
----
-
-## Complete Data Flow
+# Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                    USER INPUT (Streamlit / Python API)                   │
-│              PDF file  |  PNG  |  JPG  |  TIFF  |  bytes               │
-└────────────────────────────────┬────────────────────────────────────────┘
-                                 │
-                    ┌────────────▼────────────┐
-                    │   Stage 1: Ingestion     │
-                    │  src/ocr/engine.py       │
-                    │                          │
-                    │  PDF → pdf2image         │
-                    │    (Poppler, 300 DPI)    │
-                    │  Image → Pillow open()   │
-                    │  Output: [PIL Image]     │
-                    └────────────┬────────────┘
-                                 │ List of PIL Images (one per page)
-                    ┌────────────▼────────────┐
-                    │  Stage 2: Preprocessing  │
-                    │  src/ocr/preprocessor.py │
-                    │                          │
-                    │  1. Grayscale            │
-                    │  2. DPI normalize        │
-                    │  3. Noise removal        │
-                    │     (medianBlur k=3)     │
-                    │  4. Deskew               │
-                    │     (HoughLinesP)        │
-                    │  5. Adaptive threshold   │
-                    │     (Gaussian 15×15)     │
-                    │                          │
-                    │  Raw OCR accuracy: ~80%  │
-                    │  After preprocessing:~96%│
-                    └────────────┬────────────┘
-                                 │ Preprocessed PIL Image
-                    ┌────────────▼────────────┐
-                    │   Stage 3: OCR           │
-                    │  src/ocr/engine.py       │
-                    │  pytesseract             │
-                    │                          │
-                    │  Config:                 │
-                    │  --oem 3 (LSTM)          │
-                    │  --psm 6 (uniform block) │
-                    │  -l hin+eng              │
-                    │                          │
-                    │  Output:                 │
-                    │  - text (full string)    │
-                    │  - word confidence[]     │
-                    │  - bounding boxes[]      │
-                    │  - avg_confidence float  │
-                    └────────────┬────────────┘
-                                 │ OCR text string
-                    ┌────────────▼────────────┐
-                    │  Language Detection      │
-                    │  src/ocr/language_detect │
-                    │                          │
-                    │  L1: Unicode range check │
-                    │  L2: langdetect library  │
-                    │  Output: hindi/english/  │
-                    │          mixed + ratios  │
-                    └────────────┬────────────┘
-                                 │
-              ┌──────────────────┴──────────────────┐
-              │  Stage 4: Parallel Processing        │
-              │  (ThreadPoolExecutor, 2 workers)     │
-              │                                      │
-   ┌──────────▼──────────┐        ┌──────────────────▼──────┐
-   │  Stage 4a: NER       │        │ Stage 4b: Classification  │
-   │  src/ner/model.py   │        │ src/classifier/model.py   │
-   │                      │        │                           │
-   │  Split text into     │        │  Truncate to 512 tokens   │
-   │  chunks (≤1000 chars)│        │  XLM-RoBERTa sequence     │
-   │                      │        │  classification head      │
-   │  XLM-RoBERTa token   │        │  (768 → 8 labels)        │
-   │  classification head │        │                           │
-   │  (768 → 17 labels)   │        │  Falls back to:           │
-   │                      │        │  zero-shot (bart-mnli)   │
-   │  Falls back to:      │        │  if no fine-tuned model  │
-   │  Davlan NER model    │        │                           │
-   │                      │        │  Output: {category,       │
-   │  Regex post-process: │        │   confidence, all_scores}│
-   │  AMOUNT, ID, PHONE   │        └──────────────────────────┘
-   │  EMAIL, DATE         │
-   │                      │
-   │  Merge model+regex:  │
-   │  - same span → boost │
-   │  - overlap → highest │
-   │  - unique → keep both│
-   │                      │
-   │  Output: [{type,     │
-   │    value, conf, src}]│
-   └──────────┬───────────┘
-              │
-              └──────────────────┬──────────────────┘
-                                 │
-                    ┌────────────▼────────────┐
-                    │   Stage 5: Assembly      │
-                    │  src/pipeline/           │
-                    │  document_pipeline.py    │
-                    │                          │
-                    │  - Deduplicate entities  │
-                    │  - Filter by threshold   │
-                    │  - Group by entity type  │
-                    │  - Merge all results     │
-                    │                          │
-                    │  Output: full result dict│
-                    └────────────┬────────────┘
-                                 │
-                    ┌────────────▼────────────┐
-                    │  Export / Display        │
-                    │  src/utils/export.py     │
-                    │  app.py                  │
-                    │                          │
-                    │  JSON / CSV / Excel      │
-                    │  Streamlit UI render     │
-                    └─────────────────────────┘
+                      POST /document                                   POST /receipt
+                           |                                                |
+                  prepare_image (RGB PNG, <= 1.4 MP)  <--------------------+
+                           |
+            DiTEmbedder (CPU) -> 768-d embedding
+                           |
+            Probe: 17 classes (16 RVL-CDIP + receipt) -> IsotonicMap -> confidence
+                           |
+            route(): receipt -> receipt | form, questionnaire -> form | else, or confidence < accept -> human
+              |                      |                                         |
+     ReceiptExtractor         FormExtractor                          ReviewStore.enqueue("unrouted", type)
+   (VLM + calibration)      (VLM, every pair "review")
+              |                      |
+     fields: value, normalized, probability, auto|review
+              |
+     ReviewStore (append-only JSONL)   <-- POST /review/{doc}/{field}     DriftMonitor (PSI) --> GET /monitor
 ```
 
----
+## Components
 
-## Module Dependency Graph
+| Module | Role |
+|---|---|
+| `src/doctype/classifier.py` | `DiTEmbedder` (hook on the classifier input for the pooled embedding), `Probe` (softmax over a linear map, calibrated confidence), the class lists. `DIT_LABELS` is DiT's own output order, which differs from the dataset's alphabetical order |
+| `src/doctype/router.py` | `ROUTES` (the only document types with an extractor) and `route()`: below the accept threshold or no extractor means a person |
+| `src/doctype/service.py` | `DocTypeService`: image bytes to type, confidence and route |
+| `src/extract/vlm.py` | prompts, schemas, JSON parsing, and per-field confidence from token log-probabilities (`min_prob`). The prompts are fixed: the adapters were trained on them |
+| `src/pipeline/receipts.py` | `ReceiptExtractor`: calls the VLM, calibrates each field, applies the accept threshold, never auto-accepts a missing field |
+| `src/pipeline/forms.py` | `FormExtractor`: label/value pairs, no per-pair confidence, so everything is flagged |
+| `src/pipeline/calibration.py` | `IsotonicMap` (fit, apply, serialise) |
+| `src/api/app.py` | FastAPI service: the endpoints, and one shared extract-queue-monitor path for receipts and routed documents |
+| `src/api/backends.py` | where the models run: the Modal class (looked up by app name) for extraction, DiT on CPU for document types; each returns None when not configured |
+| `src/api/images.py` | upload validation (suffix, size) and conversion to the RGB PNG the model was fine-tuned on |
+| `src/utils/guard.py` | API key, local-only default and the daily GPU-call cap |
+| `src/monitor/` | `ReviewStore` (queue plus resolved corrections as labelled data), `DriftMonitor` (PSI of expected errors per receipt against the dev reference) |
+| `src/eval/`, `src/utils/normalize.py` | scoring and the normalisation (dates, amounts) used by training data, scorers and the service |
+| `benchmarks/modal_finetune.py`, `modal_run.py` | LoRA fine-tuning and evaluation/serving on Modal, behind a cost guard (`modal_common.py`) |
 
-```
-app.py
-  └── src/pipeline/document_pipeline.py
-        ├── src/ocr/engine.py
-        │     ├── src/ocr/preprocessor.py
-        │     │     └── opencv, PIL
-        │     └── pytesseract, pdf2image
-        ├── src/ocr/language_detect.py
-        │     └── langdetect
-        ├── src/ner/model.py
-        │     ├── src/ner/postprocessor.py
-        │     └── src/ner/entities.py
-        ├── src/classifier/model.py
-        └── src/utils/
-              ├── config.py  ← loaded by all modules
-              └── export.py
+## Decisions and the evidence for each
 
-scripts/
-  ├── generate_synthetic_data.py  (Faker, datasets)
-  ├── train_ner.py                (transformers Trainer)
-  ├── train_classifier.py         (transformers Trainer)
-  ├── evaluate_pipeline.py        (pipeline + sklearn)
-  └── download_pretrained.py      (transformers)
-```
+- **Fine-tune a VLM, not an OCR pipeline.** On SROIE the zero-shot 7B VLM reached 0.825 field accuracy; the fine-tuned 3B reaches 0.892 (+0.057 at the same size, paired interval +0.042 to +0.072). The earlier Tesseract path was removed from this repository: on real receipts it recovered fewer than half the fields.
+- **Calibrate on a dev set of the same kind of document, split by shop.** Calibration fitted on a different document family auto-accepted 89% of real fields at 89% precision against a 99% target. Fitted on real dev receipts, the same rule gives 99.2% precision (fine-tuned 7B).
+- **Min-token probability, then isotonic map.** The confidence feature is the lowest token probability inside a field's value; an isotonic regression maps it to the probability that the field is right. It halves ECE (0.039 to 0.016 for the fine-tuned 7B).
+- **The accept threshold is a product setting, not a fitted one.** The default is 0.80 (87% of fields accepted at 96.3% precision on test); `DOCINTEL_ACCEPT_THRESHOLD=0.95` is the strict setting (58 to 59% at 99.2%). Both are measured and the whole curve is published (RESULTS section 2.3), so the person deploying it can pick the error rate they can afford.
+- **7B over 3B for the receipt route.** The accuracy difference is not reliable (+0.009, interval -0.002 to +0.020), but at the strict setting the 7B's probabilities let 58% of fields be auto-accepted at 99.2% precision against 39% for the 3B, which is cheaper overall once review time is priced.
+- **A linear probe on DiT embeddings, not a fine-tuned classifier.** It needs no GPU, trains in seconds, and adding a new document family means adding embeddings and refitting. It costs 1.6 points against DiT's own head on RVL-CDIP (0.922 against 0.938). Adding the CORD format to the training data lifted CORD recognition from 70% to 98%.
+- **Only measured types are routed.** `ROUTES` lists receipts and forms; invoices are classified but sent to a person because no extractor has been validated on them.
+- **Forms are always reviewed.** The form adapter has pair F1 0.44 and no per-pair confidence, so nothing is auto-accepted.
+- **Cost guard.** Every Modal script estimates worst-case cost and refuses to start past the budget left in the ledger, after a workspace was disabled mid-run by spend limits.
 
----
+- **The GPU is protected at the service, not the model.** The Modal class has no public URL; the API requires `X-API-Key` (or a same-machine client when no key is set), caps GPU calls per day and limits Modal containers (`src/utils/guard.py`, DEPLOYMENT section 6).
 
-## Design Decisions
-
-### 1. Why XLM-RoBERTa over mBERT?
-
-XLM-RoBERTa (XML-R) was pretrained on 100 languages with 2.5× more data than mBERT and uses a larger vocabulary (250K vs 119K tokens). On Hindi NER tasks, XML-R consistently outperforms mBERT by **3–5% F1**.
-
-Key advantage for Hindi: the Devanagari script benefits from the larger sentencepiece vocabulary — Hindi words are split into fewer subword tokens, meaning less context is "wasted" on tokenization artifacts.
-
-### 2. Why Hybrid NER (model + regex)?
-
-| Approach | F1 Score | Reason |
-|----------|----------|--------|
-| Model only | ~89% | Model misses highly structured patterns |
-| Regex only | ~71% | Regex can't handle context-dependent entities |
-| **Model + Regex** | **~93%** | Complementary strengths |
-
-- **Model excels at**: PERSON, ORG, LOCATION (require contextual understanding)
-- **Regex excels at**: AMOUNT (₹ prefix), ID_NUMBER (PAN/Aadhaar patterns), PHONE (+91 format), EMAIL (standard pattern), DATE (DD/MM/YYYY variants)
-- **Merge strategy**: same span → boost confidence; overlap → keep higher; no overlap → keep both
-
-### 3. Why Adaptive Threshold over Otsu?
-
-**Otsu's method** computes a single global threshold from the image histogram. It fails on documents with:
-- Uneven lighting (scanner lamp creating gradient)
-- Shadows from phone camera angles
-- Mixed dark/light regions
-
-**Adaptive Gaussian Threshold** computes the threshold independently for each `blockSize×blockSize` neighborhood. This handles all the above cases. The cost is 2–3ms extra processing — worth the ~8% accuracy gain on real-world scans.
-
-Parameters: `blockSize=15` (odd, ~5×5mm at 300 DPI), `C=8` (subtract from mean to preserve thin strokes).
-
-### 4. Why 256 tokens for NER, 512 for Classification?
-
-- **NER (256 tokens)**: NER entities are local — PERSON, AMOUNT, DATE within a sentence don't need cross-page context. Using 256 tokens doubles throughput and fits more examples in GPU memory during training.
-
-- **Classification (512 tokens)**: Document category is a global property — the header, body structure, and footer all contribute. 512 tokens captures enough of the document to distinguish "invoice" from "letter" reliably.
-
-For very long documents, NER chunks at line breaks (1000 char chunks) and merges with offset adjustment.
-
-### 5. Why Streamlit over Flask?
-
-For this use case (internal/demo tool, single user):
-- **Streamlit**: ~50 lines for a fully functional UI with file upload, sliders, download buttons
-- **Flask + React**: ~500+ lines with similar functionality
-
-The tradeoff (Streamlit can't serve many concurrent users) is acceptable for a document processing tool. If this needed production-scale concurrency, FastAPI + a React frontend would be the right choice.
-
----
-
-## Performance Characteristics
-
-| Metric | Value | Conditions |
-|--------|-------|-----------|
-| Total processing time | 3–8 seconds | CPU, single page, pretrained models |
-| OCR alone | 1–3 seconds | Per page, 300 DPI A4 |
-| NER inference | 0.5–2 seconds | Per chunk, CPU |
-| Classification | 1–4 seconds | Zero-shot (bart-mnli) on CPU |
-| Memory (peak) | ~2–4 GB | XLM-R + bart-mnli loaded |
-| GPU speedup | 5–10× | CUDA for model inference |
-
-**Bottlenecks**:
-1. Zero-shot classification (bart-large-mnli is 1.6GB) — fine-tuned model is 10× faster
-2. Tesseract OCR on large PDFs — no GPU acceleration available for Tesseract
-
-**Concurrency**: Streamlit reruns the script per user session. For multi-user deployment, use `@st.cache_resource` (already in app.py) so models are loaded once per server process, not per session.
-
----
-
-## Error Handling Strategy
-
-```
-Level 1: Input validation
-  - File type check (enforced by st.file_uploader)
-  - File size check (configurable max_file_size_mb)
-  - Empty text guard in NER and classifier
-
-Level 2: Component-level try/except (fail-soft)
-  - OCR failure → empty text dict (no crash)
-  - NER model failure → regex-only entities
-  - Classifier failure → {"category": "unknown"}
-  - PDF conversion failure → logged, re-raised to user
-
-Level 3: Pipeline-level timeout (configurable, default 120s)
-  - Per-document timeout prevents hanging on corrupted files
-```
-
----
-
-## Security Considerations
-
-- **No API keys required** — all models run locally
-- **File processing is local** — no data sent to external services
-- **File size limits** enforced before processing (default 50MB)
-- **No shell injection** — all subprocess calls use list arguments, not shell strings
-- **Tesseract temp files** — cleaned up by pytesseract automatically
+What is not built: per-user accounts, a database-backed review store, autoscaling, an invoice extractor. See [docs/ROADMAP.md](docs/ROADMAP.md).

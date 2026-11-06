@@ -1,0 +1,61 @@
+{
+ "_run": {
+  "input": "results/raw/vlm_real_Qwen2.5-VL-7B-Instruct_sroie_test.jsonl",
+  "n_receipts": 361
+ },
+ "fields": {
+  "company": {
+   "exact": 0.8033240997229917,
+   "exact_ci95": [
+    0.7617728531855956,
+    0.8448753462603878
+   ],
+   "near_exact": 0.8393351800554016,
+   "missing": 0.0
+  },
+  "address": {
+   "exact": 0.5706371191135734,
+   "exact_ci95": [
+    0.5207756232686981,
+    0.6204986149584487
+   ],
+   "near_exact": 0.7340720221606648,
+   "missing": 0.0
+  },
+  "date": {
+   "exact": 0.9390581717451524,
+   "exact_ci95": [
+    0.9141274238227147,
+    0.96398891966759
+   ],
+   "near_exact": 0.9390581717451524,
+   "missing": 0.0
+  },
+  "total": {
+   "exact": 0.9861495844875346,
+   "exact_ci95": [
+    0.9722991689750693,
+    0.997229916897507
+   ],
+   "near_exact": 0.9861495844875346,
+   "missing": 0.0
+  }
+ },
+ "all_fields": {
+  "exact": 0.824792243767313,
+  "exact_ci95": [
+   0.8054016620498615,
+   0.8441828254847645
+  ],
+  "near_exact": 0.8746537396121884,
+  "n_fields": 1444
+ },
+ "receipts_all_fields_exact": 0.5124653739612188,
+ "receipts_all_fields_near_exact": 0.667590027700831,
+ "raw_confidence": {
+  "ece": 0.16483625405586155,
+  "mean_confidence": 0.9891907662800072,
+  "accuracy": 0.824792243767313
+ },
+ "seconds_per_page": 4.149793774797645
+}
