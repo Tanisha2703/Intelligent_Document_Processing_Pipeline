@@ -21,8 +21,8 @@ def fresh_cache():
 
 
 def run(tmp_path, monkeypatch):
-    monkeypatch.setenv("DOCINTEL_REVIEW_PATH", str(tmp_path / "review.jsonl"))
-    monkeypatch.delenv("DOCINTEL_VLM_APP", raising=False)
+    monkeypatch.setenv("IDP_REVIEW_PATH", str(tmp_path / "review.jsonl"))
+    monkeypatch.delenv("IDP_VLM_APP", raising=False)
     return AppTest.from_file(APP, default_timeout=30).run()
 
 

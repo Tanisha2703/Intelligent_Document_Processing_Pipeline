@@ -1,8 +1,8 @@
 """
 Protection for a service that can spend GPU money on someone's account.
 
-  - DailyCap: a per-process limit on GPU calls per UTC day (DOCINTEL_MAX_GPU_CALLS_PER_DAY, default 200).
-  - check_access: an API key (DOCINTEL_API_KEY, sent as the X-API-Key header). With no key configured, only a client
+  - DailyCap: a per-process limit on GPU calls per UTC day (IDP_MAX_GPU_CALLS_PER_DAY, default 200).
+  - check_access: an API key (IDP_API_KEY, sent as the X-API-Key header). With no key configured, only a client
     on the same machine is let in, so exposing the port or putting a proxy in front of it never opens the GPU by accident.
 """
 
@@ -34,18 +34,16 @@ class DailyCap:
 
 
 def cap_from_env() -> DailyCap:
-    return DailyCap(int(os.environ.get("DOCINTEL_MAX_GPU_CALLS_PER_DAY", "200")))
+    return DailyCap(int(os.environ.get("IDP_MAX_GPU_CALLS_PER_DAY", "200")))
 
 
 def check_access(api_key: str | None, client_host: str | None, forwarded_for: str | None) -> str | None:
     """None when the request may proceed, otherwise the reason it must be refused (HTTP 401)."""
-    configured = os.environ.get("DOCINTEL_API_KEY")
+    configured = os.environ.get("IDP_API_KEY")
     if configured:
         if api_key and hmac.compare_digest(api_key.encode(), configured.encode()):
             return None
         return "missing or wrong X-API-Key header"
     if client_host in LOCAL_HOSTS and not forwarded_for:
         return None
-    return (
-        "this service is only open to the local machine until DOCINTEL_API_KEY is set; send it as the X-API-Key header"
-    )
+    return "this service is only open to the local machine until IDP_API_KEY is set; send it as the X-API-Key header"

@@ -4,9 +4,9 @@ Receipt extraction with a fine-tuned vision-language model, calibrated confidenc
   image -> VLM (fine-tuned, JSON out) -> per-field calibrated P(correct) -> auto-accept above a threshold, else review
 
 The calibration (an isotonic map from the model's value-token probability to P(correct)) and the accept threshold are
-fitted on a labelled DEV set that shares no shop with the fine-tuning data (benchmarks/analyze_real.py writes
+fitted on a labelled DEV set that shares no shop with the fine-tuning data (experiments/evaluation/analyze_real.py writes
 configs/receipt_calibration.json). `vlm` is any callable (png_bytes, doc_type) -> {"fields": {...}, "confidence": {...}};
-benchmarks/modal_run.py's VLM class (with `adapter` set) is the real one, a stub is enough for tests.
+experiments/serving/modal_run.py's VLM class (with `adapter` set) is the real one, a stub is enough for tests.
 """
 
 import json
@@ -43,7 +43,7 @@ class ReceiptExtractor:
     @classmethod
     def from_config(cls, vlm: Callable, path: str | Path = DEFAULT_CONFIG) -> "ReceiptExtractor":
         d = json.loads(Path(path).read_text(encoding="utf-8"))
-        accept = float(os.environ.get("DOCINTEL_ACCEPT_THRESHOLD") or d["accept"])
+        accept = float(os.environ.get("IDP_ACCEPT_THRESHOLD") or d["accept"])
         return cls(vlm, IsotonicMap.from_dict(d["map"]), accept, d.get("feature", "min_prob"))
 
     def extract(self, png: bytes) -> dict:

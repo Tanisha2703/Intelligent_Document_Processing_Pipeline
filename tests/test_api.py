@@ -43,7 +43,7 @@ def post(c, name="r.png", data=None):
 
 
 def test_health_reports_whether_a_model_is_configured(tmp_path, monkeypatch):
-    monkeypatch.delenv("DOCINTEL_VLM_APP", raising=False)
+    monkeypatch.delenv("IDP_VLM_APP", raising=False)
     assert client(tmp_path).get("/health").json() == {
         "status": "ok",
         "model_configured": True,
@@ -99,7 +99,7 @@ def test_a_model_failure_becomes_422_not_500(tmp_path):
 
 
 def test_no_model_configured_gives_503(tmp_path, monkeypatch):
-    monkeypatch.delenv("DOCINTEL_VLM_APP", raising=False)
+    monkeypatch.delenv("IDP_VLM_APP", raising=False)
     plain = TestClient(create_app(None, tmp_path / "r.jsonl"))
     assert post(plain).status_code == 503
 

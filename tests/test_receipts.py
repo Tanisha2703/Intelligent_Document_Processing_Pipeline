@@ -99,8 +99,8 @@ def test_accept_threshold_can_be_overridden_from_the_environment(tmp_path, monke
         {"company": "A", "date": "1/1/2019", "address": "B", "total": "2"},
         dict.fromkeys(("company", "date", "address", "total"), 0.85),
     )
-    monkeypatch.delenv("DOCINTEL_ACCEPT_THRESHOLD", raising=False)
+    monkeypatch.delenv("IDP_ACCEPT_THRESHOLD", raising=False)
     assert not ReceiptExtractor.from_config(vlm, cfg).extract(b"x")["needs_review"]  # 0.85 >= the configured 0.80
-    monkeypatch.setenv("DOCINTEL_ACCEPT_THRESHOLD", "0.95")
+    monkeypatch.setenv("IDP_ACCEPT_THRESHOLD", "0.95")
     strict = ReceiptExtractor.from_config(vlm, cfg)
     assert strict.accept == 0.95 and strict.extract(b"x")["needs_review"]  # the strict setting reviews them

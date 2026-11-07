@@ -1,6 +1,6 @@
 # Roadmap
 
-Rule: **no number goes in the README unless a script in `benchmarks/` produced it and the raw JSON is in `results/raw/`.**
+Rule: **no number goes in the README unless a script in `experiments/evaluation/` (or `experiments/training/`) produced it and the raw JSON is in `results/raw/`.**
 
 ## Done
 - [x] Real datasets with disjoint splits: SROIE (361 test receipts), CORD (100), XFUND (105 forms, 7 languages), RVL-CDIP (1,600 test documents, 16 classes); company-disjoint dev set; unseen-shop evaluation
@@ -12,6 +12,7 @@ Rule: **no number goes in the README unless a script in `benchmarks/` produced i
 - [x] Document-type stage: DiT embeddings, 17-class probe with calibrated confidence, router, `POST /document` ([RESULTS](RESULTS.md) section 3)
 
 ## Next, in order of value
+- [ ] Make `experiments/datasets/fetch_xfund.py` reproduce the exact 250-form training set (it lacks the at-most-60-pairs filter), and store the SROIE fine-tune/dev split as a list of IDs instead of copied folders
 - [ ] PDF and multi-page input: render each page to an image, classify and extract per page, and decide how pages group into documents (today a PDF is rejected and a multi-page TIFF is refused)
 - [ ] Make the review log usable as training data: keep the uploaded image (or a reference to it), the raw model output and adapter version, and the auto-accepted fields; move it from a JSONL file to a database. Then retrain or recalibrate from the corrections (SFT on them, or preference tuning)
 - [ ] A phone-photo test set (receipts and forms photographed at an angle) for the document-type stage and the receipt extractor; every dataset here is a flat scan

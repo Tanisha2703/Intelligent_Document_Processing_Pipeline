@@ -8,7 +8,7 @@ HTTP service: document routing, receipt extraction with calibrated probabilities
   GET  /monitor                     drift of the confidence distribution against the dev-set reference, review statistics
   GET  /health                      (open; everything else needs the API key or a local client, see src/utils/guard.py)
 
-    DOCINTEL_VLM_APP=docintel-vlm DOCINTEL_DOCTYPE=1 uvicorn "src.api.app:create_app" --factory --port 8000
+    IDP_VLM_APP=idp-vlm IDP_DOCTYPE=1 uvicorn "src.api.app:create_app" --factory --port 8000
 
 The models run elsewhere (src/api/backends.py): extraction on Modal, document types on CPU. A backend that is not
 configured makes the endpoints that need it answer 503; the review and monitor endpoints always work.
@@ -112,7 +112,7 @@ def create_app(
         clf = classifier()
         if clf is None:
             raise HTTPException(
-                503, "no document-type model configured; set DOCINTEL_DOCTYPE=1 (needs torch and transformers)"
+                503, "no document-type model configured; set IDP_DOCTYPE=1 (needs torch and transformers)"
             )
         data = read_upload(file, max_file_mb)
         try:
@@ -159,7 +159,7 @@ def create_app(
         """Extract a receipt image: each field with a calibrated probability and an auto / review decision."""
         extractor = receipt_extractor()
         if extractor is None:
-            raise HTTPException(503, "no model configured; set DOCINTEL_VLM_APP to the deployed Modal app")
+            raise HTTPException(503, "no model configured; set IDP_VLM_APP to the deployed Modal app")
         try:
             png = prepare_image(read_upload(file, max_file_mb))
         except HTTPException:

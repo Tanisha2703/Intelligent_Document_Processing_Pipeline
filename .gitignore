@@ -30,13 +30,13 @@ CLAUDE*.md
 logs/
 *.log
 
-# Model weights (the LoRA adapters live on the Modal volume docintel-models, not in the repository)
+# Model weights (the LoRA adapters live on the Modal volume idp-models, not in the repository)
 models/
 *.safetensors
 *.pt
 *.bin
 
-# Data: downloaded by benchmarks/fetch_*.py, or written by the service at runtime (see data/README.md)
+# Data: downloaded by experiments/datasets/fetch_*.py, or written by the service at runtime (see data/README.md)
 data/*
 !data/README.md
 

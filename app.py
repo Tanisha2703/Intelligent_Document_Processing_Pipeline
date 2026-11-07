@@ -6,7 +6,7 @@ Intelligent Document Processing demo: extract fields from a receipt, with a cali
 Two ways to use it:
   - "Recorded examples" works anywhere: real receipts with the fine-tuned model's stored output.
   - "Upload a receipt" runs the fine-tuned model live. It needs the Modal app deployed
-    (`modal deploy benchmarks/modal_run.py`) and `DOCINTEL_VLM_APP=docintel-vlm` set; see docs/DEPLOYMENT.md.
+    (`modal deploy experiments/serving/modal_run.py`) and `IDP_VLM_APP=idp-vlm` set; see docs/DEPLOYMENT.md.
 
 The review tab reads and writes the same JSONL store as the HTTP service (data/review/review.jsonl).
 """
@@ -20,9 +20,9 @@ from pathlib import Path
 import streamlit as st
 
 ROOT = Path(__file__).parent
-EXAMPLES = ROOT / "assets" / "examples"
+EXAMPLES = ROOT / "examples" / "recorded"
 CONFIG = ROOT / "configs" / "receipt_calibration.json"
-STORE_PATH = Path(os.environ.get("DOCINTEL_REVIEW_PATH", ROOT / "data" / "review" / "review.jsonl"))
+STORE_PATH = Path(os.environ.get("IDP_REVIEW_PATH", ROOT / "data" / "review" / "review.jsonl"))
 GOOD, WARN = "#1baf7a", "#eb6834"
 
 st.set_page_config(page_title="Intelligent Document Processing", page_icon="🧾", layout="wide")
@@ -57,7 +57,7 @@ def _gpu_cap():
 
 
 def _live_extractor():
-    """The Modal-backed extractor, or None when DOCINTEL_VLM_APP is not set."""
+    """The Modal-backed extractor, or None when IDP_VLM_APP is not set."""
     from src.api.backends import modal_receipts
 
     return modal_receipts()
@@ -69,7 +69,7 @@ def extractor():
 
 def accept_summary() -> str:
     """What the accept threshold did on the 361 SROIE test receipts, from the calibration config (never typed by hand)."""
-    if os.environ.get("DOCINTEL_ACCEPT_THRESHOLD"):
+    if os.environ.get("IDP_ACCEPT_THRESHOLD"):
         return "The accept threshold was overridden, so the measured test figures in the README do not apply."
     try:
         c = json.loads(CONFIG.read_text(encoding="utf-8"))
@@ -83,8 +83,8 @@ def accept_summary() -> str:
 
 def accept_threshold():
     try:
-        if os.environ.get("DOCINTEL_ACCEPT_THRESHOLD"):
-            return float(os.environ["DOCINTEL_ACCEPT_THRESHOLD"])
+        if os.environ.get("IDP_ACCEPT_THRESHOLD"):
+            return float(os.environ["IDP_ACCEPT_THRESHOLD"])
         return json.loads(CONFIG.read_text(encoding="utf-8"))["accept"]
     except (OSError, KeyError, ValueError):
         return None
@@ -150,11 +150,11 @@ def extract_tab():
     ext = extractor()
     if ext is None:
         st.info(
-            "Live extraction needs the fine-tuned model deployed on Modal. Deploy it with `modal deploy benchmarks/modal_run.py`, "
-            "set `DOCINTEL_VLM_APP=docintel-vlm`, and restart this app. The recorded examples work without it."
+            "Live extraction needs the fine-tuned model deployed on Modal. Deploy it with `modal deploy experiments/serving/modal_run.py`, "
+            "set `IDP_VLM_APP=idp-vlm`, and restart this app. The recorded examples work without it."
         )
         return
-    password = os.environ.get("DOCINTEL_DEMO_PASSWORD")
+    password = os.environ.get("IDP_DEMO_PASSWORD")
     if password and st.text_input("Password for live extraction", type="password") != password:
         st.caption("Live extraction spends GPU time, so it is password-protected. The recorded examples are open.")
         return

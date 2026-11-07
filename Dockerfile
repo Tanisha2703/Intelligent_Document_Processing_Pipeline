@@ -1,8 +1,8 @@
 # Intelligent Document Processing demo image (CPU). Serves the Streamlit app; the fine-tuned model runs on Modal.
-#   docker build -t docintel .
-#   docker run --rm -p 8501:8501 docintel                                   # recorded examples, no GPU needed
-#   docker run --rm -p 8501:8501 -e DOCINTEL_VLM_APP=docintel-vlm \
-#       -e MODAL_TOKEN_ID=... -e MODAL_TOKEN_SECRET=... docintel            # live upload through Modal
+#   docker build -t idp .
+#   docker run --rm -p 8501:8501 idp                                        # recorded examples, no GPU needed
+#   docker run --rm -p 8501:8501 -e IDP_VLM_APP=idp-vlm \
+#       -e MODAL_TOKEN_ID=... -e MODAL_TOKEN_SECRET=... idp            # live upload through Modal
 FROM python:3.12-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl \

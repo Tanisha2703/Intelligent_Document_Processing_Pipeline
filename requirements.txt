@@ -8,9 +8,9 @@ uvicorn>=0.27
 python-multipart>=0.0.9      # file uploads
 streamlit>=1.40              # the demo app
 modal>=1.0                   # the fine-tuned model runs on a Modal GPU (training, evaluation, live demo)
-matplotlib>=3.8              # benchmarks/make_figures.py
-pyarrow>=15                  # benchmarks/fetch_cord.py, fetch_rvlcdip.py (parquet)
-fsspec[http]>=2024.1         # benchmarks/fetch_rvlcdip.py reads parquet row groups over HTTP
+matplotlib>=3.8              # experiments/evaluation/make_figures.py
+pyarrow>=15                  # experiments/datasets/fetch_cord.py, fetch_rvlcdip.py (parquet)
+fsspec[http]>=2024.1         # experiments/datasets/fetch_rvlcdip.py reads parquet row groups over HTTP
 
 # Tests
 pytest>=8

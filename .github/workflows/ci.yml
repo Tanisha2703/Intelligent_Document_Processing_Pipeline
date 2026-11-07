@@ -29,4 +29,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t docintel:ci .
+      - run: docker build -t idp:ci .

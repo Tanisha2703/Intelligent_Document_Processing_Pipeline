@@ -44,7 +44,7 @@ def post(c, **kw):
 
 
 def test_without_a_key_only_the_local_machine_is_let_in(tmp_path, monkeypatch):
-    monkeypatch.delenv("DOCINTEL_API_KEY", raising=False)
+    monkeypatch.delenv("IDP_API_KEY", raising=False)
     c, calls = app(tmp_path, client=("203.0.113.9", 5000))
     assert post(c).status_code == 401 and not calls
     assert c.get("/monitor").status_code == 401 and c.get("/review/queue").status_code == 401
@@ -52,21 +52,21 @@ def test_without_a_key_only_the_local_machine_is_let_in(tmp_path, monkeypatch):
 
 
 def test_a_proxy_forwarding_header_does_not_unlock_the_local_exception(tmp_path, monkeypatch):
-    monkeypatch.delenv("DOCINTEL_API_KEY", raising=False)
+    monkeypatch.delenv("IDP_API_KEY", raising=False)
     c, calls = app(tmp_path)  # looks local, but a proxy says otherwise
     assert post(c, headers={"x-forwarded-for": "203.0.113.9"}).status_code == 401 and not calls
     assert post(c).status_code == 200
 
 
 def test_with_a_key_the_right_one_is_required_from_anywhere(tmp_path, monkeypatch):
-    monkeypatch.setenv("DOCINTEL_API_KEY", "s3cret")
+    monkeypatch.setenv("IDP_API_KEY", "s3cret")
     c, calls = app(tmp_path, client=("203.0.113.9", 5000))
     assert post(c).status_code == 401 and post(c, headers={"x-api-key": "nope"}).status_code == 401 and not calls
     assert post(c, headers={"x-api-key": "s3cret"}).status_code == 200 and len(calls) == 1
 
 
 def test_the_daily_cap_stops_gpu_calls_with_429(tmp_path, monkeypatch):
-    monkeypatch.delenv("DOCINTEL_API_KEY", raising=False)
+    monkeypatch.delenv("IDP_API_KEY", raising=False)
     c, calls = app(tmp_path, cap=2)
     assert [post(c).status_code for _ in range(3)] == [200, 200, 429] and len(calls) == 2
 
@@ -81,6 +81,6 @@ def test_dailycap_resets_on_a_new_day():
 
 
 def test_check_access_rules(monkeypatch):
-    monkeypatch.delenv("DOCINTEL_API_KEY", raising=False)
+    monkeypatch.delenv("IDP_API_KEY", raising=False)
     assert check_access(None, "127.0.0.1", None) is None and check_access(None, "::1", None) is None
     assert check_access(None, "10.0.0.5", None) and check_access("k", "10.0.0.5", None)

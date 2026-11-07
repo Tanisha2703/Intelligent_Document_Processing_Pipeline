@@ -1,7 +1,7 @@
 """
 Vision-language-model extraction: prompts, JSON parsing and per-field confidence for receipts and forms.
 
-No torch import here, so it is unit-testable anywhere; the model runs in benchmarks/modal_run.py.
+No torch import here, so it is unit-testable anywhere; the model runs in experiments/serving/modal_run.py.
 
 Confidence: the model emits JSON token by token. For each field we find the character span of its value in
 the generated text, map it to the tokens covering that span, and use the probability the model gave those

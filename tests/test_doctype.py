@@ -158,7 +158,7 @@ def test_missing_extraction_model_is_explained_not_hidden(tmp_path):
 
 
 def test_document_endpoint_validates_uploads_and_configuration(tmp_path, monkeypatch):
-    monkeypatch.delenv("DOCINTEL_DOCTYPE", raising=False)
+    monkeypatch.delenv("IDP_DOCTYPE", raising=False)
     c = client(tmp_path, "receipt")
     assert c.post("/document", files={"file": ("d.pdf", b"x", "application/pdf")}).status_code == 415
     assert c.post("/document", files={"file": ("d.png", b"not an image", "image/png")}).status_code == 422

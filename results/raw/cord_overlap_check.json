@@ -23,7 +23,7 @@
    },
    "all": {
     "n": 100,
-    "scalar_accuracy": 0.7966666666666667,
+    "scalar_accuracy": 0.7966666666666669,
     "scalar_accuracy_where_field_present": 0.9507389162561576,
     "menu_f1": 0.8336594911937378
    },
@@ -42,7 +42,7 @@
    },
    "not_near_duplicate": {
     "n": 76,
-    "scalar_accuracy": 0.9561403508771931,
+    "scalar_accuracy": 0.9561403508771928,
     "scalar_accuracy_where_field_present": 0.9872611464968153,
     "menu_f1": 0.9112709832134291
    },

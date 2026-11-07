@@ -4,7 +4,7 @@
 install:            ## runtime + test dependencies, and the linter
 	pip install -r requirements.txt ruff
 
-test:               ## 117 tests, about 10 seconds, no GPU and no network
+test:               ## 120 tests, about 10 seconds, no GPU and no network
 	pytest -q
 
 lint:               ## static checks and formatting check (the same as CI)
@@ -18,7 +18,7 @@ format:             ## apply the formatter
 demo:               ## Streamlit demo; the recorded examples need no GPU
 	streamlit run app.py --server.address 127.0.0.1
 
-api:                ## the HTTP service on localhost (set DOCINTEL_VLM_APP / DOCINTEL_DOCTYPE for the models)
+api:                ## the HTTP service on localhost (set IDP_VLM_APP / IDP_DOCTYPE for the models)
 	uvicorn "src.api.app:create_app" --factory --port 8000
 
 clean:              ## remove caches
